@@ -13,7 +13,7 @@ window.ENGINE = (() => {
       earned: 0, energieTot: 0, houtTot: 0, t: Date.now(), start: prev ? prev.start : Date.now(),
       rondeStart: Date.now(), verzamelT: 0, instel: prev ? prev.instel : { offlineMelding: true },
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
-      vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0,
+      vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -54,7 +54,7 @@ window.ENGINE = (() => {
       faseKost: 1, auto: {}, offline: BAL.offlineUren, magieMax: BAL.magieMax, start: {}, startOpen: [], faseMin: 0,
       verzamel: 1, capD: {}, capRes: {}, kostRes: {}, faseHoog: 1, ketenIn: 1, upKost: 1, offlineEff: 0, tev: {}, drukte: 0,
       verbandPlus: 0, verbind: 0, vondst: 0, vondstX: 1, licht: 0, lichtDuur: 1, lichtX: 1, reis: 1, rivier: false, novaX: 1,
-      magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [] };
+      magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10 };
     const zet = (e, s = 1) => {               // s = sterkte (1 of 0,4); vermenigvuldigers schalen als 1 + (x−1)·s
       const sx = x => 1 + (x - 1) * s;
       if (e.t === 'prod') { if (e.res) m.res[e.res] = (m.res[e.res] || 1) * sx(e.x); else m.dist[e.d] = (m.dist[e.d] || 1) * sx(e.x); }
@@ -93,6 +93,12 @@ window.ENGINE = (() => {
       else if (e.t === 'magieE') m.magieE *= sx(e.x);
       else if (e.t === 'offlineEnergie') m.offlineEnergie *= sx(e.x);
       else if (e.t === 'veyra') m.veyra = true;
+      else if (e.t === 'tikX') m.tikX *= e.x;
+      else if (e.t === 'tikRes') m.tikRes.push(...e.res);
+      else if (e.t === 'ritme') m.ritme = true;
+      else if (e.t === 'tikLomari') m.tikLomari += e.plus;
+      else if (e.t === 'tikSec') m.tikSec = Math.max(m.tikSec, e.sec);
+      else if (e.t === 'mandSec') m.mandSec = Math.min(m.mandSec, e.sec);
     };
     const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...Object.keys(S.star).filter(k => S.star[k])];
     for (const id of ids) for (const e of fx(id)) zet(e);
@@ -237,6 +243,8 @@ window.ENGINE = (() => {
     if (e.b && S.n[e.b[0]] < e.b[1]) return false;
     if (e.d && !S.open.includes(e.d)) return false;
     if (e.tot && totaal(S) < e.tot) return false;
+    if (e.tik && (S.tikken || 0) < e.tik) return false;
+    if (e.lom && Object.keys(S.lom || {}).length < e.lom) return false;
     return true;
   }
   function eisTekst(e) {
@@ -245,6 +253,8 @@ window.ENGINE = (() => {
     if (e?.b) t.push(`${e.b[1]}× ${B[e.b[0]].naam}`);
     if (e?.d) t.push(`${e.d} open`);
     if (e?.tot) t.push(`${e.tot} gebouwen`);
+    if (e?.tik) t.push(`${e.tik} keer getikt`);
+    if (e?.lom) t.push(`${e.lom} Lomari ontmoet`);
     return t.join(', ');
   }
   function koopUpgrade(S, id) {
@@ -259,18 +269,24 @@ window.ENGINE = (() => {
   }
 
   // ---------- verzamelen en automatisering ----------
-  function verzamel(S, keer = 1) {
-    const m = mods(S), R = rates(S, m), uit = {};
-    for (const k of ['hout', 'bladeren']) {
-      const v = Math.max(1, R.prod[k] * BAL.verzamelSec) * keer * m.verzamel;
-      const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + v); uit[k] = S.r[k] - voor;
+  // Wat één tik oplevert (zonder het toe te passen)
+  function tikWaarde(S, m = mods(S), x = 1) {
+    const R = rates(S, m), ingezet = Object.keys(S.lom || {}).filter(id => plek(S, id)).length, uit = {};
+    const f = m.verzamel * m.tikX * (1 + m.tikLomari * ingezet) * x;
+    for (const k of ['hout', 'bladeren', ...m.tikRes]) uit[k] = Math.max(1, R.prod[k] * m.tikSec) * f;
+    return uit;
+  }
+  function verzamel(S, keer = 1, x = 1) {
+    const m = mods(S), w = tikWaarde(S, m, x), uit = {};
+    for (const [k, v0] of Object.entries(w)) {
+      const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + v0 * keer); uit[k] = S.r[k] - voor;
       S.earned += uit[k] * RES[k].waarde; if (k === 'hout') S.houtTot += uit[k];
     }
     return uit;
   }
   function automatiseer(S, dt) {
     const m = mods(S), gedaan = [];
-    if (m.auto.verzamel) { S.verzamelT += dt; while (S.verzamelT >= 10) { S.verzamelT -= 10; verzamel(S); } }
+    if (m.auto.verzamel) { S.verzamelT += dt; while (S.verzamelT >= m.mandSec) { S.verzamelT -= m.mandSec; verzamel(S); } }
     if (m.auto.wonen && bedden(S, m) < banen(S) + 1) {
       for (const b of ['familie', 'nest']) if (S.open.includes(B[b].d) && koop(S, b)) { gedaan.push(b); break; }
     }
@@ -362,7 +378,7 @@ window.ENGINE = (() => {
   function stats(S) {
     const m = mods(S);
     return { tot: totaal(S), bedden: bedden(S, m), open: echteOpen(S), gebieden: S.open.length - echteOpen(S), maxFase: Math.max(...BK.map(b => S.fase[b])),
-      hout: S.houtTot, magie: S.magie, runs: S.runs, nova: S.nova, lomari: Object.keys(S.lom).length };
+      hout: S.houtTot, magie: S.magie, runs: S.runs, nova: S.nova, lomari: Object.keys(S.lom).length, tikken: S.tikken || 0 };
   }
   function checkAch(S) {
     const st = stats(S), nieuw = [];
@@ -406,7 +422,7 @@ window.ENGINE = (() => {
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k) => cap(S, k, mods(S)), kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
-    waardeRate, perStuk, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
+    waardeRate, perStuk, tikWaarde, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };
 })();

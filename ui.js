@@ -179,7 +179,7 @@ function paneelDorp() {
 }
 
 const CAT_UITLEG = { A: 'Meer productie van één grondstof of één district.', B: 'Goedkoper bouwen, meer opslag of minder voedselverbruik.',
-  C: 'Dingen die het dorp vanzelf gaat doen, ook als jij niet kijkt.', D: 'Magie uit Voelari: versterkt alles tegelijk.', E: 'Meer bewoners en sterkere samenwerking tussen districten.' };
+  C: 'Dingen die het dorp vanzelf gaat doen, ook als jij niet kijkt.', F: 'Meer uit elke tik op Verzamelen. Vooral sterk aan het begin en voor wie actief speelt.', D: 'Magie uit Voelari: versterkt alles tegelijk.', E: 'Meer bewoners en sterkere samenwerking tussen districten.' };
 // Wat verandert er als je deze upgrade koopt? Rekent het verschil echt uit.
 function effectNu(u) {
   const m0 = E.mods(S), R0 = E.rates(S, m0), cap0 = Object.fromEntries(E.RK.map(k => [k, E.cap(S, k)])), bed0 = E.bedden(S);
@@ -191,7 +191,14 @@ function effectNu(u) {
   if (R1.use.voedsel < R0.use.voedsel - 1e-6) t.push(`voedselverbruik van ${fmtR(R0.use.voedsel)} naar ${fmtR(R1.use.voedsel)} per seconde`);
   if (u.fx.some(e => e.t === 'kost')) { const b = E.BK.filter(b => S.open.includes(B[b].d) && B[b].p).sort((a, c) => S.n[c] - S.n[a])[0];
     if (b) { const k = Object.keys(B[b].k)[0]; t.push(`volgende ${B[b].naam} van ${fmt(E.kostVan(S, b, m0)[k])} naar ${fmt(E.kostVan(S, b, m1)[k])} ${RES[k].naam.toLowerCase()}`); } }
-  if (u.fx.some(e => e.t === 'faseKost')) t.push('elke groeifase-upgrade kost 20% minder');
+  if (u.cat === 'F') {
+    const w0 = E.tikWaarde(S, m0); S.up[u.id] = true; const w1 = E.tikWaarde(S); delete S.up[u.id];
+    const tx = w => Object.entries(w).map(([k, v]) => `${fmtR(v)} ${RES[k].naam.toLowerCase()}`).join(' + ');
+    if (tx(w0) !== tx(w1)) t.push(`een tik geeft nu ${tx(w0)}, daarna ${tx(w1)}`);
+    if (u.fx.some(e => e.t === 'ritme')) t.push('tik 10 keer binnen 3 seconden en de tiende tik geeft ×5');
+    if (u.fx.some(e => e.t === 'mandSec')) t.push('de manden tikken twee keer zo vaak');
+  }
+  if (u.fx.some(e => e.t === 'faseKost')) t.push('elke fase-upgrade kost 20% minder');
   if (u.fx.some(e => e.t === 'auto')) t.push('gaat vanzelf, je hoeft er niets voor te doen');
   if (!t.length && u.fx.some(e => e.t === 'prod')) t.push('werkt zodra je het bijbehorende gebouw hebt');
   return t;
@@ -201,6 +208,8 @@ function eisVoortgang(e) {
   if (e?.b) r.push([`${e.b[1]}× ${B[e.b[0]].naam} (in ${B[e.b[0]].d})`, S.n[e.b[0]], e.b[1]]);
   if (e?.tot) r.push([`${e.tot} gebouwen in totaal`, E.totaal(S), e.tot]);
   if (e?.d) r.push([`${e.d} open`, S.open.includes(e.d) ? 1 : 0, 1]);
+  if (e?.tik) r.push([`${e.tik} keer getikt op Verzamelen`, S.tikken || 0, e.tik]);
+  if (e?.lom) r.push([`${e.lom} Lomari ontmoet`, Object.keys(S.lom).length, e.lom]);
   if (e?.u) for (const id of e.u) r.push([`eerst: ${D.U.find(x => x.id === id).naam}`, S.up[id] ? 1 : 0, 1]);
   return r.map(([t, nu, nodig]) => `<li class="${nu >= nodig ? 'ok' : ''}">${nu >= nodig ? '✓' : '○'} ${t}${nodig > 1 && nu < nodig ? ` · nu ${fmt(nu)}` : ''}</li>`).join('');
 }
@@ -404,9 +413,14 @@ function naarDistrict(d) {
 $('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (ladeOpen && tab === b.dataset.tab) return lade(false); tab = b.dataset.tab; render(); lade(true); };
 $('#gebieden').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
 $('#spots').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
+let tikTijden = [];
 $('#verzamel').onclick = () => {
-  S.tikken = (S.tikken || 0) + 1; const uit = E.verzamel(S), f = document.createElement('span'); f.className = 'zweef';
-  f.textContent = `+${fmt(uit.hout)} hout · +${fmt(uit.bladeren)} bladeren`; $('#verzamel').after(f); setTimeout(() => f.remove(), 900); ververs();
+  S.tikken = (S.tikken || 0) + 1;
+  const nu = performance.now(); tikTijden = tikTijden.filter(t => nu - t < 3000); tikTijden.push(nu);
+  const ritme = E.mods(S).ritme && tikTijden.length >= 10; if (ritme) tikTijden = [];
+  const uit = E.verzamel(S, 1, ritme ? 5 : 1), f = document.createElement('span'); f.className = 'zweef' + (ritme ? ' ritme' : '');
+  f.innerHTML = (ritme ? '<b>Ritme ×5</b> ' : '') + Object.entries(uit).filter(([, v]) => v > 0).map(([k, v]) => `${ico(k)}+${fmt(v)}`).join(' ');
+  $('#verzamel').after(f); setTimeout(() => f.remove(), 900); ververs();
 };
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
