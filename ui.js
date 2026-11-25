@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0;
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0;
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -262,6 +262,16 @@ function boomHTML(id) {
   }).join('') + `<p class="nb">Elke Band geeft 1 punt. Knopen werken altijd, ook als ${E.lomDef(id).naam} vrij is, en blijven na Hergroei.</p></details>`;
 }
 const openBoom = new Set();
+function actHTML(id) {
+  const A = LM.ACT[id], C = LM.CFG, l = S.lom[id], a = S.act[id] || {};
+  const ult = A.fx ? `${A.naam}, twee keer zo sterk en vijf keer zo lang` : LM.ULT_DIRECT[A.direct];
+  let h = `<div class="act"><p><b>Vaardigheid: ${A.naam}.</b> ${A.tekst}. <span class="nb" data-actst="${id}"></span></p><div class="rij"><button class="knop klein" data-act="${id}">Gebruik</button>`;
+  if (l.band >= C.ultBand) h += `<button class="knop klein ult" data-ult="${id}" title="${ult}">Ultiem · ${C.ultKost} Wortelgloed</button>`;
+  h += '</div>';
+  h += l.band >= C.ultBand ? `<p class="nb">Ultiem: ${ult}. Afkoeltijd 1 uur.</p>` : `<p class="nb">Ultieme vaardigheid vanaf Band ${C.ultBand}.</p>`;
+  if (l.band >= C.bandMax && l.band < C.bandTop) h += `<button class="knop klein" data-doorbreek="${id}">Naar Band ${l.band + 1} · ${C.bandWortel} Wortelgloed</button>`;
+  return h + '</div>';
+}
 function runeHTML(b) {
   const nu = S.rune[b];
   return `<div class="runen"><b>Rune:</b> ${nu ? `${D.RUNE[nu].naam} (${D.RUNE[nu].tekst.toLowerCase()})` : 'nog geen'}<div class="rij">${Object.entries(D.RUNE).filter(([r]) => r !== nu).map(([r, x]) =>
@@ -283,8 +293,8 @@ function paneelLomari() {
       <p class="pers">${def.pers}. ${def.gave}</p>
       <p class="gave"><b>Gave:</b> ${def.pasTekst(l.band)}</p>
       <p class="st">${status}</p>
-      <div class="bar" title="Band ${l.band + 1}"><i style="width:${l.band >= LM.CFG.bandMax ? 100 : Math.min(100, l.xp / E.xpNodig(l.band) * 100)}%"></i></div>
-      <label class="wl">Inzet <select data-wijs="${def.id}">${opts}</select></label>${boomHTML(def.id)}</div></div>`;
+      <div class="bar" title="Band ${l.band + 1}"><i style="width:${l.band >= LM.CFG.bandTop ? 100 : Math.min(100, l.xp / E.xpNodig(l.band) * 100)}%"></i></div>
+      <label class="wl">Inzet <select data-wijs="${def.id}">${opts}</select></label>${actHTML(def.id)}${boomHTML(def.id)}</div></div>`;
   }).join('') + '</div>';
   h += `<h2>Verbanden</h2><p class="intro">Een Verband werkt als alle leden in hetzelfde district staan, of in districten die verbonden zijn. Elke Touwbrug legt een nieuwe verbinding.</p>`;
   h += LM.V.map(v => {
@@ -357,6 +367,10 @@ function ververs() {
     const pastNiet = !E.past(S, c, m); el.textContent = pastNiet ? 'Opslag te klein' : `Bouw ${n > 1 ? n + '×' : ''}`.trim(); el.disabled = pastNiet || !E.kan(S, c);
     const kp = document.querySelector(`[data-kost="${b}"]`); if (kp) kp.innerHTML = kost(c);
   });
+  $$('[data-act]').forEach(el => { const id = el.dataset.act, a = S.act[id] || {}; el.disabled = !E.actKan(S, id, false);
+    const st = document.querySelector(`[data-actst="${id}"]`); if (st) st.textContent = !E.plek(S, id) ? 'Werkt alleen als ingezet.' : a.over > 0 ? `Loopt nog ${duur(a.over)}.` : a.cd > 0 ? `Weer klaar over ${duur(a.cd)}.` : 'Klaar.'; });
+  $$('[data-ult]').forEach(el => el.disabled = !E.actKan(S, el.dataset.ult, true));
+  $$('[data-doorbreek]').forEach(el => el.disabled = !E.doorbreekKan(S, el.dataset.doorbreek));
   $$('[data-rune]').forEach(el => { const [b, r] = el.dataset.rune.split(':'); el.disabled = !E.kan(S, E.runeKost(S, r)); });
   $$('[data-fase]').forEach(el => el.disabled = !E.kan(S, E.faseKost(S, el.dataset.fase, m)));
   $$('[data-up]').forEach(el => el.disabled = !E.kan(S, E.upKost(S, D.U.find(u => u.id === el.dataset.up))));
@@ -401,7 +415,7 @@ function volTekst(nu, c, net) {
 // ---------- grondstof-uitleg ----------
 const HERKOMST = { nevelparel: 'Valunari', kroonhars: 'Kroveli', wortelgloed: 'Lomaruun', hout: 'Takelom', bladeren: 'Lomavii', lianen: 'Lomavii', voedsel: 'Moloro', steen: 'Dorukha', kristal: 'Dorukha', gereedschap: 'Frikto', energie: 'Voelari' };
 const WAARVOOR = { nevelparel: 'sleutelknopen in de upgradebomen van de Lomari (5 per knoop)', kroonhars: 'de upgrade naar fase 5 (Meesterwerk): 20 Kroonhars per gebouw',
-  wortelgloed: 'De oude bron, en later ultieme vaardigheden en Band boven de 30 (deel B)', hout: 'bijna elk gebouw', bladeren: 'woningen, Voelari en upgrades', lianen: 'bruggen, Hangtuinen en het openen van districten',
+  wortelgloed: 'De oude bron, ultieme vaardigheden (3 per keer) en Band boven de 30 (2 per Band)', hout: 'bijna elk gebouw', bladeren: 'woningen, Voelari en upgrades', lianen: 'bruggen, Hangtuinen en het openen van districten',
   voedsel: 'je bewoners: elke bewoner eet een beetje. Is het op, dan halveert alle andere productie', steen: 'grotere gebouwen en groeifase 3 en hoger',
   gereedschap: 'groeifase 3 en hoger', kristal: 'magische upgrades en Voelari', energie: 'magische upgrades en de Hergroei' };
 function uitleg(k) {
@@ -467,7 +481,10 @@ $('#verzamel').onclick = () => {
 };
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
-  if (d.knoop) { const [id, i] = d.knoop.split(':'); openBoom.add(id); if (E.koopKnoop(S, id, +i)) { toast(`${E.lomDef(id).naam} leert ${LM.BOOM[id][+i][0]}`); after(); } }
+  if (d.act || d.ult) { const id = d.act || d.ult, ult = !!d.ult, r = E.gebruik(S, id, ult); if (r) { const A = LM.ACT[id];
+      toast(`${E.lomDef(id).naam}: ${ult ? 'ultieme ' : ''}${A.naam}${r.vondsten ? ` · ${r.vondsten} verborgen ${r.vondsten > 1 ? 'plekken' : 'plek'}` : r.res ? ` · +${fmt(r.v)} ${RES[r.res].naam.toLowerCase()}` : r.geb !== undefined ? ` · ${r.geb} ${r.geb === 1 ? 'gebeurtenis' : 'gebeurtenissen'} voorbij` : r.reis !== undefined ? ` · ${r.reis} aangekomen` : r.bouw !== undefined ? ` · ${r.bouw} ${r.bouw === 1 ? 'upgrade' : 'upgrades'} sneller` : ''}`); after(); } }
+  else if (d.doorbreek) { if (E.doorbreek(S, d.doorbreek)) { toast(`${E.lomDef(d.doorbreek).naam} bereikt Band ${S.lom[d.doorbreek].band}`); after(); } }
+  else if (d.knoop) { const [id, i] = d.knoop.split(':'); openBoom.add(id); if (E.koopKnoop(S, id, +i)) { toast(`${E.lomDef(id).naam} leert ${LM.BOOM[id][+i][0]}`); after(); } }
   else if (d.rune) { const [b, r] = d.rune.split(':'); if (E.zetRune(S, b, r)) { toast(`${D.RUNE[r].naam} in ${B[b].naam}`); after(); } }
   else if (d.bouwhelp) helpBouw(d.bouwhelp);
   else if (d.help) helpGeb(+d.help);

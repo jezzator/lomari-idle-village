@@ -84,6 +84,31 @@ window.LOM = (() => {
     veyra:  [['Bronvoeler', 'Flohara-energie +10%', [{ t: 'prod', res: 'energie', x: 1.1 }]], ['Stille stroom', 'Offline Flohara-energie +15%', [{ t: 'offlineEnergie', x: 1.15 }]], ['Oude stem', 'Magische upgrades −5% energie', [{ t: 'magieE', x: .95 }]],
              ['Wortelkennis', 'Hergroei +5% Nova', [{ t: 'nova', x: 1.05 }]], ['Volle bron', 'Flohara-energie +20%', [{ t: 'prod', res: 'energie', x: 1.2 }]]],
   };
+
+  // Actieve vaardigheden (deel B): alleen als de Lomari is ingezet. fx = tijdelijk effect (duur s), direct = gebeurt meteen.
+  // Ultiem (vanaf Band 20, kost Wortelgloed): effect twee keer zo sterk en vijf keer zo lang; ultFx vervangt het effect.
+  const ACT = {
+    melo:   { naam: 'Speurtocht',        tekst: 'Vindt meteen een verborgen plek', direct: 'vondst' },
+    tiku:   { naam: 'Bliksemsprint',     tekst: '1 minuut lang elke tik ×3', fx: [{ t: 'tikX', x: 3 }] },
+    beki:   { naam: 'Groeispurt',        tekst: '1 minuut lang Lomavii ×2', fx: [{ t: 'prod', d: 'Lomavii', x: 2 }] },
+    koro:   { naam: 'Versterken',        tekst: '1 minuut lang hout en steen ×1,5', fx: [{ t: 'prod', res: 'hout', x: 1.5 }, { t: 'prod', res: 'steen', x: 1.5 }] },
+    varo:   { naam: 'Diepe dreun',       tekst: '1 minuut lang steen ×2 en kristallen ×1,5', fx: [{ t: 'prod', res: 'steen', x: 2 }, { t: 'prod', res: 'kristal', x: 1.5 }] },
+    piko:   { naam: 'Lichtregen',        tekst: 'Vangt meteen een lichtbol', direct: 'bol' },
+    brakka: { naam: 'Krachtsprong',      tekst: 'Lopende upgrades zijn 25% sneller klaar', direct: 'bouw' },
+    sora:   { naam: 'Kalmte',            tekst: '1 minuut lang +20 tevredenheid in alle districten', fx: [{ t: 'tevAlle', plus: 20 }] },
+    liri:   { naam: 'Herstel',           tekst: 'Beëindigt meteen alle bosgebeurtenissen', direct: 'herstel', ultFx: [{ t: 'gebKans', x: 0 }] },
+    niko:   { naam: 'Schildveld',        tekst: '5 minuten geen nieuwe bosgebeurtenissen', fx: [{ t: 'gebKans', x: 0 }], duur: 300 },
+    nira:   { naam: 'Stroomversnelling', tekst: '1 minuut lang Frikto ×2', fx: [{ t: 'prod', d: 'Frikto', x: 2 }] },
+    ori:    { naam: 'Oude herinnering',  tekst: '1 minuut lang upgrades −30%', fx: [{ t: 'upKost', x: .7 }] },
+    droki:  { naam: 'Zweefwerk',         tekst: '1 minuut lang gereedschap ×2', fx: [{ t: 'prod', res: 'gereedschap', x: 2 }] },
+    seli:   { naam: 'Samenzijn',         tekst: '1 minuut lang Verband-bonussen +50%', fx: [{ t: 'verband', plus: .5 }] },
+    elomi:  { naam: 'Patroonlezing',     tekst: '1 minuut lang kristallen ×2', fx: [{ t: 'prod', res: 'kristal', x: 2 }] },
+    yomi:   { naam: 'Nachtzicht',        tekst: "5 minuten lang geen productieverlies 's nachts", fx: [{ t: 'nacht', plus: .2 }], duur: 300 },
+    kavo:   { naam: 'Doorsteek',         tekst: 'Alle Lomari die onderweg zijn, komen meteen aan', direct: 'reis', ultFx: [{ t: 'reis', x: .1 }] },
+    veyra:  { naam: 'Bronroep',          tekst: '1 minuut lang Flohara-energie ×2', fx: [{ t: 'prod', res: 'energie', x: 2 }] },
+  };
+  const ULT_DIRECT = { vondst: 'Vindt meteen drie verborgen plekken', bol: 'Vangt meteen een lichtbol met drie keer zoveel buit', bouw: 'Lopende upgrades zijn 75% sneller klaar',
+    herstel: 'Beëindigt alle bosgebeurtenissen en houdt ze 5 minuten weg', reis: 'Alle Lomari komen meteen aan, en 5 minuten lang reizen ze bijna zonder reistijd' };
   function pct(x) { return n1(x * 100) + '%'; }
   function n1(x) { return (Math.round(x * 10) / 10).toString().replace('.', ','); }
 
@@ -126,10 +151,11 @@ window.LOM = (() => {
   const OPSLAG_D = { Takelom: ['hout'], Dorukha: ['steen', 'kristal'], Lomavii: ['lianen', 'bladeren'], Moloro: ['voedsel'], Frikto: ['gereedschap'], Voelari: ['energie'], Rikilari: [], Valunari: ['nevelparel'], Kroveli: ['kroonhars'], Lomaruun: ['wortelgloed'] };
 
   const CFG = {
-    buiten: .4, reisSec: 600, xpPerUur: 60, xpPerGebouw: .1, xpBasis: 100, xpGroei: 1.22, bandMax: 30,
+    buiten: .4, reisSec: 600, xpPerUur: 60, xpPerGebouw: .1, xpBasis: 100, xpGroei: 1.22, bandMax: 30, bandTop: 50, bandWortel: 2,
+    actDuur: 60, actCd: 600, ultBand: 20, ultKost: 3, ultCd: 3600, ultDuur: 5, ultSterk: 2,
     drukteGrens: 2, druktePerLomari: 5, tevMin: 80, tevMax: 120, zangTev: .25, zangTevMax: 10,
     verbindPct: .01, vondstSec: 600, vondstMax: 3, vondstBuitSec: 7200, vondstBonus: .01,
     lichtDuur: 20, lichtBuitSec: 30,
   };
-  return { BOOM, BOOM_KOST, SLEUTEL, SLEUTEL_PAREL, L, V, VERB, VERB_GRATIS, OPSLAG_D, CFG };
+  return { ACT, ULT_DIRECT, BOOM, BOOM_KOST, SLEUTEL, SLEUTEL_PAREL, L, V, VERB, VERB_GRATIS, OPSLAG_D, CFG };
 })();

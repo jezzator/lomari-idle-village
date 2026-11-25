@@ -14,7 +14,7 @@ window.ENGINE = (() => {
       rondeStart: Date.now(), verzamelT: 0, instel: prev ? prev.instel : { offlineMelding: true },
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
-      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {},
+      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -56,7 +56,7 @@ window.ENGINE = (() => {
       verzamel: 1, capD: {}, capRes: {}, kostRes: {}, faseHoog: 1, ketenIn: 1, upKost: 1, offlineEff: 0, tev: {}, drukte: 0,
       verbandPlus: 0, verbind: 0, vondst: 0, vondstX: 1, licht: 0, lichtDuur: 1, lichtX: 1, reis: 1, rivier: false, novaX: 1,
       magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10,
-      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {}, runeKost: 1, openWegen: false, ketenPlant: 1 };
+      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {}, runeKost: 1, openWegen: false, ketenPlant: 1, tevAlle: 0 };
     const zet = (e, s = 1) => {               // s = sterkte (1 of 0,4); vermenigvuldigers schalen als 1 + (x−1)·s
       const sx = x => 1 + (x - 1) * s;
       if (e.t === 'prod') { if (e.res) m.res[e.res] = (m.res[e.res] || 1) * sx(e.x); else m.dist[e.d] = (m.dist[e.d] || 1) * sx(e.x); }
@@ -112,6 +112,7 @@ window.ENGINE = (() => {
       else if (e.t === 'schild') m.schild = true;
       else if (e.t === 'voorhoede') m.voorhoede = true;
       else if (e.t === 'bouwX') m.bouwX *= sx(e.x);
+      else if (e.t === 'tevAlle') m.tevAlle += e.plus * s;
       else if (e.t === 'runeKost') m.runeKost *= sx(e.x);
       else if (e.t === 'openWegen') m.openWegen = true;
       else if (e.t === 'ketenPlant') m.ketenPlant *= sx(e.x);
@@ -128,6 +129,8 @@ window.ENGINE = (() => {
     }
     // Upgradebomen: gekochte knopen gelden altijd
     for (const id in S.lom || {}) for (const i of S.lom[id].boom || []) for (const e of LM.BOOM[id][i][2]) zet(e);
+    // Actieve en ultieme vaardigheden die nu lopen
+    for (const [id, a] of Object.entries(S.act || {})) if (a.over > 0) { const A = LM.ACT[id], lijstFx = a.ult && A.ultFx ? A.ultFx : A.fx; if (lijstFx) for (const e of lijstFx) zet(e, a.ult && !A.ultFx ? C.ultSterk : 1); }
     // Gebieden: bonus als hun Lomari er staan
     if (plek(S, 'nira') === 'Valunari') m.dist.Valunari = (m.dist.Valunari || 1) * 2;
     m.kroveliAlles = ['piko', 'kavo'].some(id => plek(S, id) === 'Kroveli');
@@ -147,7 +150,7 @@ window.ENGINE = (() => {
   function tevredenheid(S, d, m = mods(S)) {
     const over = Math.max(0, inDistrict(S, d).length - (C.drukteGrens + m.drukte));
     const dip = (S.geb || []).filter(g => g.tev && g.d === d).length * BAL.gebTev * (m.schild ? .5 : 1);
-    return 100 + (m.tev[d] || 0) + Math.min(C.zangTevMax, C.zangTev * S.n.zangplek) - over * C.druktePerLomari
+    return 100 + (m.tev[d] || 0) + m.tevAlle + Math.min(C.zangTevMax, C.zangTev * S.n.zangplek) - over * C.druktePerLomari
       + (isNacht(S) ? m.nachtTev : 0) - dip;
   }
   // Dag en nacht: S.klok loopt alleen als je speelt (en offline door, zonder nacht-effect)
@@ -207,7 +210,7 @@ window.ENGINE = (() => {
 
   function tick(S, dt, rendement = 1, m = mods(S)) {
     const R = rates(S, m, dt);
-    bouwTick(S, dt);
+    bouwTick(S, dt); actTick(S, dt);
     for (const k of RK) {
       const eff = rendement * (m.geenNacht && k === 'energie' ? m.offlineEnergie : 1);
       const net = (R.prod[k] - R.use[k]) * eff;
@@ -276,6 +279,33 @@ window.ENGINE = (() => {
     for (const x of S.bouw.filter(x => x.over <= 0)) { S.fase[x.b]++; (S.bouwKlaar = S.bouwKlaar || []).push(x.b); }
     S.bouw = S.bouw.filter(x => x.over > 0);
   }
+  function actTick(S, dt) {
+    for (const [id, a] of Object.entries(S.act || {})) { a.over = Math.max(0, a.over - dt); a.cd = Math.max(0, a.cd - dt); a.ucd = Math.max(0, (a.ucd || 0) - dt); if (!a.over && !a.cd && !a.ucd) delete S.act[id]; }
+  }
+  // Een vaardigheid gebruiken. ult = ultieme versie (Band 20+, kost Wortelgloed, eigen afkoeltijd).
+  function actKan(S, id, ult) {
+    const l = S.lom[id], a = S.act?.[id] || {}; if (!l || !plek(S, id)) return false;
+    if (ult) return l.band >= C.ultBand && !(a.ucd > 0) && !(a.over > 0) && S.r.wortelgloed >= C.ultKost;
+    return !(a.cd > 0) && !(a.over > 0);
+  }
+  function gebruik(S, id, ult = false) {
+    if (!actKan(S, id, ult)) return null;
+    const A = LM.ACT[id], a = (S.act = S.act || {})[id] = S.act[id] || { over: 0, cd: 0, ucd: 0 }, m = mods(S), uit = {};
+    if (ult) { S.r.wortelgloed -= C.ultKost; a.ucd = C.ultCd; } else a.cd = C.actCd;
+    a.ult = ult;
+    if (A.fx || (ult && A.ultFx)) a.over = (A.duur || C.actDuur) * (ult ? C.ultDuur : 1);
+    if (A.direct === 'vondst') { const opties = RK.filter(k => !RES[k].zeldzaam && (k !== 'energie' || S.open.includes('Voelari')));
+      for (let i = 0; i < (ult ? 3 : 1); i++) { S.vondsten.push({ res: opties[Math.floor(Math.random() * opties.length)] }); S.vondstTot++; } uit.vondsten = ult ? 3 : 1; }
+    else if (A.direct === 'bol') { const R = rates(S, m), opt = RK.filter(k => R.prod[k] > 0); if (opt.length) { const k = opt[Math.floor(Math.random() * opt.length)], voor = S.r[k];
+      S.r[k] = Math.min(cap(S, k, m), S.r[k] + R.prod[k] * C.lichtBuitSec * m.lichtX * (ult ? 3 : 1)); uit.res = k; uit.v = S.r[k] - voor; } }
+    else if (A.direct === 'bouw') { for (const x of S.bouw || []) x.over *= ult ? .25 : .75; uit.bouw = (S.bouw || []).length; }
+    else if (A.direct === 'herstel') { uit.geb = (S.geb || []).length; S.geb = []; }
+    else if (A.direct === 'reis') { uit.reis = Object.values(S.lom).filter(l => l.reis > 0).length; for (const l of Object.values(S.lom)) l.reis = 0; }
+    return uit;
+  }
+  // Band boven de 30: de XP loopt door, en elke volgende Band kost Wortelgloed
+  const doorbreekKan = (S, id) => { const l = S.lom[id]; return !!l && l.band >= C.bandMax && l.band < C.bandTop && l.xp >= xpNodig(l.band) && S.r.wortelgloed >= C.bandWortel; };
+  function doorbreek(S, id) { if (!doorbreekKan(S, id)) return false; const l = S.lom[id]; S.r.wortelgloed -= C.bandWortel; l.xp -= xpNodig(l.band); l.band++; return true; }
   function helpBouw(S, b) {   // tikken helpt bouwen: elke tik 1% van de bouwtijd (minstens 2 seconden)
     const x = (S.bouw || []).find(x => x.b === b); if (!x) return false;
     x.over -= Math.max(BAL.bouwTikMin, x.duur * BAL.bouwTik); if (x.over <= 0) bouwTick(S, 0); return true;
@@ -408,10 +438,11 @@ window.ENGINE = (() => {
     for (const id in S.lom) {
       const l = S.lom[id];
       if (l.reis > 0) { l.reis = Math.max(0, l.reis - dt); continue; }
-      if (!l.d || l.band >= C.bandMax) continue;
+      if (!l.d || l.band >= C.bandTop) continue;
       const nGeb = BK.filter(b => B[b].d === l.d).reduce((a, b) => a + S.n[b], 0);
       l.xp += dt / 3600 * C.xpPerUur * (1 + C.xpPerGebouw * nGeb);
       while (l.band < C.bandMax && l.xp >= xpNodig(l.band)) { l.xp -= xpNodig(l.band); l.band++; ev.push({ t: 'band', id, band: l.band }); }
+      if (l.band >= C.bandMax) l.xp = Math.min(l.xp, xpNodig(l.band));
     }
     if (m.vondst > 0) {
       S.vondstT += dt;
@@ -534,6 +565,7 @@ window.ENGINE = (() => {
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
+    actKan, gebruik, doorbreekKan, doorbreek,
     runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };
