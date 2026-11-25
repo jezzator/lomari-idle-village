@@ -15,7 +15,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
-      gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [],
+      gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -284,6 +284,15 @@ window.ENGINE = (() => {
   function zetGave(S, id) {
     if (!gaveKan(S, id)) return false;
     S.gave[id]--; S.gaveAan = { id, over: (S.gaveAan?.over > 0 ? S.gaveAan.over : 0) + D.GAVE[id].sec }; return true;
+  }
+  const gavePrijs = (S, id) => { const [k, v] = D.GAVE[id].koop; return [k, Math.ceil(v * D.GAVE_KOOPGROEI ** (S.gaveKocht?.[id] || 0))]; };
+  const gaveHeb = (S, k) => k === 'nova' ? S.nova - S.novaUit : S.r[k];
+  const gaveKoopKan = (S, id) => { const [k, v] = gavePrijs(S, id); return (S.gave?.[id] || 0) < D.GAVE_MAX && gaveHeb(S, k) >= v; };
+  function koopGave(S, id) {
+    if (!gaveKoopKan(S, id)) return false; const [k, v] = gavePrijs(S, id);
+    if (k === 'nova') S.novaUit += v; else S.r[k] -= v;
+    S.gaveKocht = S.gaveKocht || {}; S.gaveKocht[id] = (S.gaveKocht[id] || 0) + 1;
+    S.gave[id] = (S.gave[id] || 0) + 1; return true;
   }
   function gaveTick(S, dt) { if (S.gaveAan) { S.gaveAan.over -= dt; if (S.gaveAan.over <= 0) S.gaveAan = null; } }
 
@@ -576,7 +585,7 @@ window.ENGINE = (() => {
 
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k) => cap(S, k, mods(S)), kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
-    gaveX, gaveKan, zetGave, geefGave,
+    gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
