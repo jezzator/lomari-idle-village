@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0;
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0;
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -106,7 +106,8 @@ function hotspots() {
     const n = E.BK.filter(b => B[b].d === d).reduce((a, b) => a + S.n[b], 0);
     return `<button class="spot${open ? '' : ' dicht'}${sel === d ? ' sel' : ''}" data-sel="${d}" style="left:${l}%;top:${t}%;width:${w}%;height:${h}%" aria-label="${d}${open ? `, ${n} gebouwen` : ', gesloten'}">
       <span class="lmk">${E.inDistrict(S, d).map(id => `<img src="portret/${id}.jpg" alt="">`).join('')}</span><span class="tag">${open ? n : 'Gesloten'}</span></button>`;
-  }).join('');
+  }).join('') + S.geb.filter(g => D.DISTRICTS[g.d]).map((g, i) => { const [l, t, w] = D.DISTRICTS[g.d].vak, j = S.geb.filter((x, y) => y < i && x.d === g.d).length;
+    return `<button class="gebt" data-help="${g.k}" style="left:${l + w * .45 + j * 9}%;top:${t + 3}%" aria-label="${D.GEB[g.id].naam} in ${g.d}: tik om te helpen">${GEBICO[g.id]}<span data-gebover="${g.k}"></span></button>`; }).join('');
 }
 
 const GIDS = [
@@ -126,6 +127,8 @@ function gids() {
   return `<div class="gids"><small>Eerste stappen · ${i + 1} van ${GIDS.length}</small><p>${g.tekst}</p><div class="rij">${ga}<button class="knop klein licht" id="gidsuit">Verberg</button></div>
     <p class="nb">Tip: tik bovenin op een grondstof om te zien waar hij vandaan komt.</p></div>`;
 }
+const GEBICO = { storm: '🌪', plaag: '🍂', instorting: '⛰', onweer: '⚡' };
+function gebTekst(g) { return g.tev ? `${D.GEB[g.id].naam}: tevredenheid −${Math.round(BAL.gebTev * (E.mods(S).schild ? .5 : 1))}` : `${D.GEB[g.id].naam}: ${B[g.b].naam} ${E.mods(S).schild ? 'werkt op halve kracht' : 'ligt stil'}`; }
 function paneelDorp() {
   const d = sel, x = D.DISTRICTS[d] || D.GEBIEDEN[d], open = S.open.includes(d), m = E.mods(S);
   let h = gids() + `<div class="dkop" style="--dk:${DKLEUR[d]}">${window.ART ? ART.embleem(d, DKLEUR[d]) : ''}<div><h2>${d}</h2><p>${x.functie}</p></div></div>`;
@@ -133,6 +136,8 @@ function paneelDorp() {
     const vb = E.verbindingen(S).filter(([a, b]) => a === d || b === d).map(([a, b]) => a === d ? b : a);
     const hier = E.inDistrict(S, d), thuis = LM.L.filter(l => l.d === d && S.lom[l.id]).map(l => l.naam);
     if (D.GEBIEDEN[d]) h += `<p class="uitleg"><b>Gebied:</b> blijft open na elke Hergroei. ${D.GEBIEDEN[d].bonus}</p>`;
+    const hierGeb = S.geb.filter(g => g.d === d);
+    if (hierGeb.length) h += hierGeb.map(g => `<div class="gebk"><span>${GEBICO[g.id]}</span><div><b>${gebTekst(g)}</b><br><small>${D.GEB[g.id].tekst}. Nog <span data-gebover="${g.k}"></span>. Elke tik helpt ${BAL.helpSec} seconden.</small></div><button class="knop klein" data-help="${g.k}">Help</button></div>`).join('');
     h += `<div class="dinfo">${S.lom.sora ? `<span>Tevredenheid <b>${Math.round(E.tevredenheid(S, d))}%</b></span>` : ''}
       ${hier.length > 2 ? `<span>Drukte: ${hier.length} Lomari in één district kan de tevredenheid verlagen</span>` : ''}
       ${(() => { const t = districtOpbrengst(d); const r = Object.entries(t).filter(([, v]) => v > 0); return r.length ? `<span><b>Maakt nu:</b> ${r.map(([k, v]) => `${ico(k)}${fmtR(v)} ${RES[k].naam.toLowerCase()}/s`).join(' · ')}</span>` : ''; })()}
@@ -309,7 +314,7 @@ function paneelInstel() {
 function maakSig() {
   return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
-    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0)).join(), S.vondsten.length, E.mods(S).verbanden.join()]);
+    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0)).join(), S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S)]);
 }
 function render() {
   sig = maakSig();
@@ -339,6 +344,10 @@ function ververs() {
   $$('[data-open]').forEach(el => { const c = D.DISTRICTS[el.dataset.open].open, p = E.past(S, c, m); el.disabled = !p || !E.kan(S, c); el.textContent = p ? `Open ${el.dataset.open}` : 'Opslag te klein: bouw eerst meer opslag'; });
   $$('.kc').forEach(el => el.classList.toggle('mis', S.r[el.dataset.r] < +el.dataset.v - 1e-9));
   $$('[data-reis]').forEach(el => { const l = S.lom[el.dataset.reis]; if (l) el.textContent = duur(l.reis); });
+  $$('[data-gebover]').forEach(el => { const g = S.geb.find(g => g.k === +el.dataset.gebover); if (g) { const t = Math.max(0, Math.ceil(g.over)); el.textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; } });
+  const di = E.dagInfo(S), dg = $('#dag');
+  dg.textContent = di.nacht ? `🌙 Nacht · tikken ×${String(BAL.nachtTik).replace('.', ',')} · dag over ${kort(di.rest)}` : `☀ Dag · nacht over ${kort(di.rest)}`;
+  $('#plaatwrap').classList.toggle('nacht', di.nacht);
   const bol = $('#bol'); if (S.bol) { bol.hidden = false; bol.style.left = S.bol.x + '%'; bol.style.top = S.bol.y + '%'; } else bol.hidden = true;
   const w = $('#wacht'); if (w) w.textContent = E.novaWacht(S);
   const eb = $('#ebar'); if (eb) { eb.style.width = Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100) + '%'; $('#etekst').textContent = `${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}`; }
@@ -418,7 +427,11 @@ function naarDistrict(d) {
 // ---------- invoer ----------
 $('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (ladeOpen && tab === b.dataset.tab) return lade(false); tab = b.dataset.tab; render(); lade(true); };
 $('#gebieden').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
-$('#spots').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
+function helpGeb(k) {
+  const r = E.help(S, k); if (!r) return;
+  if (r.klaar) { toast(r.g.tev ? `${r.g.d} is weer tot rust gekomen` : `${B[r.g.b].naam} werkt weer`); render(); } else ververs();
+}
+$('#spots').onclick = e => { const h = e.target.closest('[data-help]'); if (h) return helpGeb(+h.dataset.help); const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
 let tikTijden = [];
 $('#verzamel').onclick = () => {
   const nu = performance.now(); if (nu - (tikTijden.at(-1) || 0) < 200) return;   // max 5 tikken per seconde
@@ -430,7 +443,8 @@ $('#verzamel').onclick = () => {
 };
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
-  if (d.ga) naarDistrict(d.ga);
+  if (d.help) helpGeb(+d.help);
+  else if (d.ga) naarDistrict(d.ga);
   else if (d.tabGa) { tab = d.tabGa; render(); }
   else if (b.id === 'gidsuit') { S.instel.gidsUit = true; bewaar(); render(); }
   else if (d.modus) { modus = d.modus === 'max' ? 'max' : +d.modus; render(); }
@@ -478,6 +492,14 @@ function lomEv(ev) {
     if (e.t === 'nieuw') continue;
     else if (e.t === 'band' && (e.band % 5 === 0)) toast(`${E.lomDef(e.id).naam} bereikt Band ${e.band}`);
     else if (e.t === 'vondst') toast('Melo heeft een verborgen plek gevonden');
+  }
+}
+function wereldEv(ev) {
+  for (const e of ev) {
+    if (e.t === 'nacht') toast('De nacht valt over het dorp: tikken levert meer op');
+    else if (e.t === 'dag') toast('Het wordt dag in het dorp');
+    else if (e.t === 'geb') toast(`${D.GEB[e.g.id].naam} in ${e.g.d}: ${e.g.tev ? 'de bewoners slapen slecht' : B[e.g.b].naam + ' ligt stil'}${e.g.buit ? ` · Voorhoede: +${fmt(e.g.buit)} hout` : ''}`);
+    else if (e.t === 'gebKlaar') toast(e.g.tev ? `${e.g.d} is weer tot rust gekomen` : `${B[e.g.b].naam} werkt weer`);
   }
 }
 function prest(l) { if (l.length) toast(l.length === 1 ? `Prestatie: ${l[0].naam}` : l.length <= 3 ? `${l.length} prestaties: ${l.map(a => a.naam).join(', ')}` : `${l.length} nieuwe prestaties behaald`); }
@@ -540,7 +562,7 @@ let vorige = performance.now(), sinds = 0, achT = 0, verborgen = false;
 setInterval(() => {
   if (verborgen) return;
   const nu = performance.now(), dt = Math.min(5, (nu - vorige) / 1000); vorige = nu;
-  E.tick(S, dt); lomEv(E.lomTick(S, dt)); const auto = E.automatiseer(S, dt);
+  E.tick(S, dt); lomEv(E.lomTick(S, dt)); wereldEv(E.wereld(S, dt)); const auto = E.automatiseer(S, dt);
   sinds += dt; achT += dt;
   if (achT > 1) { achT = 0; prest(E.checkAch(S)); }
   if (sinds > 10) { sinds = 0; bewaar(); }

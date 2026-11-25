@@ -78,7 +78,7 @@ window.BALANS = (() => {
         const eind = t + dur * 3600;
         while (t < eind) {
           for (let j = 0; j < 20 && beslis(S); j++);
-          E.tick(S, 15); E.lomTick(S, 15); E.automatiseer(S, 15); t += 15;
+          E.tick(S, 15); E.lomTick(S, 15); E.wereld(S, 15); E.automatiseer(S, 15); t += 15;
           const st = E.stats(S);
           S.open.forEach(d => D.START_OPEN.includes(d) || markeer(`${d} open`));
           if (st.maxFase >= 3) markeer('Eerste groeifase 3');

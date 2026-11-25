@@ -31,6 +31,18 @@ window.DATA = (() => {
     hergroeiEnergie: 100000,     // Hergroei beschikbaar na zoveel energie (moment dat Veyra verschijnt)
     verzamelSec: .2,            // één tik = 0,2 s productie hout + bladeren (minimaal 1 van elk)
     magieMax: 12,
+    // Dag en nacht (deel B): één etmaal duurt dagSec seconden, het laatste deel is nacht
+    dagSec: 600, nachtDeel: .3, nachtProd: .8, nachtTik: 1.5,
+    // Bosgebeurtenissen: elke gebSec een kans; alleen als je speelt, nooit offline
+    gebSec: 240, gebKans: .5, gebVanaf: 15, gebMax: 2, gebDuur: 180, gebTev: 15, helpSec: 5,
+  };
+  // Bosgebeurtenissen. doel = gebouwen die stil kunnen vallen; tev = tevredenheid in een district daalt; nacht = alleen 's nachts.
+  // Een gebeurtenis kost nooit gebouwen of voorraad: hooguit valt een gebouw een paar minuten stil.
+  const GEB = {
+    storm:      { naam: 'Storm',         doel: ['hakplek', 'zaag', 'kroon', 'liaan', 'hangtuin'], tekst: 'Een storm rukt aan de kronen' },
+    plaag:      { naam: 'Plaag',         doel: ['pluk', 'liaan', 'hangtuin', 'bessen'], tekst: 'Een plaag tast de planten aan' },
+    instorting: { naam: 'Instorting',    doel: ['groeve', 'tunnel', 'kristgrot'], tekst: 'Een gang stort in' },
+    onweer:     { naam: 'Onweersnacht',  tev: true, nacht: true, tekst: 'Donder houdt de bewoners wakker' },
   };
   const novaFormule = earned => Math.floor(3 * Math.cbrt(earned / 1e10));
   const magieKost = k => ({ kristal: 40 * 4 ** k, energie: 25 * 4 ** k });
@@ -177,5 +189,5 @@ window.DATA = (() => {
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
   ];
 
-  return { RES, BAL, novaFormule, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { GEB, RES, BAL, novaFormule, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

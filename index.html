@@ -209,6 +209,14 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 #toasts{bottom:calc(var(--bar) + 12px)!important;z-index:30}
 .rs[hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){.lade{transition:none}}
+#dag{color:#cdbf9f;font-size:14px;white-space:nowrap}
+.plaat::after{content:'';position:absolute;inset:0;background:#0b1636;opacity:0;pointer-events:none;transition:opacity 3s}
+.plaatwrap.nacht .plaat::after{opacity:.42}#bol{z-index:2}
+.gebt{position:absolute;z-index:3;display:flex;align-items:center;gap:3px;padding:3px 8px 3px 5px;border:2px solid #f0c27a;border-radius:14px;background:#3a1f14e6;color:#ffe3b8;font:700 13px/1 inherit;cursor:pointer;box-shadow:0 0 12px #e8743b88;animation:puls 1.6s ease-in-out infinite}
+.gebk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid #c9733f;border-radius:10px;background:#c9733f22}
+.gebk>span{font-size:22px}
+@media(max-width:520px){.gebt{font-size:11px;padding:2px 6px 2px 4px}#dag{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.gebt{animation:none}.plaat::after{transition:none}}
 </style></head><body>
 <header class="top">
   <div class="kop"><h1>Lomari: Idle Village</h1><span id="nova"></span></div>
@@ -217,7 +225,7 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 <main id="hoofd">
   <section class="dorp">
     <div class="plaatwrap" id="plaatwrap"><div class="plaat"><img src="dorp.jpg" alt="Het Lomari-dorp in de oude boom, met de zeven districten"><canvas id="vlieg" aria-hidden="true"></canvas><div id="bouw" aria-hidden="true"></div><div id="spots"></div><div id="fx" aria-hidden="true"></div><button id="bol" hidden aria-label="Lichtbol: tik om te vangen"></button></div></div>
-    <div class="dorpinfo"><div id="gebieden"></div><span id="bew"></span><span id="hon" hidden>Voedseltekort: productie gehalveerd</span><button id="verzamel">Verzamelen</button></div>
+    <div class="dorpinfo"><div id="gebieden"></div><span id="dag"></span><span id="bew"></span><span id="hon" hidden>Voedseltekort: productie gehalveerd</span><button id="verzamel">Verzamelen</button></div>
   </section>
   <aside class="lade" id="lade" aria-label="Paneel">
     <div class="ladekop"><span id="ladetitel"></span><button id="dicht" aria-label="Paneel sluiten">×</button></div>

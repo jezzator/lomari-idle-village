@@ -14,6 +14,7 @@ window.ENGINE = (() => {
       rondeStart: Date.now(), verzamelT: 0, instel: prev ? prev.instel : { offlineMelding: true },
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
+      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0,
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -54,7 +55,8 @@ window.ENGINE = (() => {
       faseKost: 1, auto: {}, offline: BAL.offlineUren, magieMax: BAL.magieMax, start: {}, startOpen: [], faseMin: 0,
       verzamel: 1, capD: {}, capRes: {}, kostRes: {}, faseHoog: 1, ketenIn: 1, upKost: 1, offlineEff: 0, tev: {}, drukte: 0,
       verbandPlus: 0, verbind: 0, vondst: 0, vondstX: 1, licht: 0, lichtDuur: 1, lichtX: 1, reis: 1, rivier: false, novaX: 1,
-      magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10 };
+      magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10,
+      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false };
     const zet = (e, s = 1) => {               // s = sterkte (1 of 0,4); vermenigvuldigers schalen als 1 + (x−1)·s
       const sx = x => 1 + (x - 1) * s;
       if (e.t === 'prod') { if (e.res) m.res[e.res] = (m.res[e.res] || 1) * sx(e.x); else m.dist[e.d] = (m.dist[e.d] || 1) * sx(e.x); }
@@ -100,6 +102,15 @@ window.ENGINE = (() => {
       else if (e.t === 'tikLomari') m.tikLomari += e.plus;
       else if (e.t === 'tikSec') m.tikSec = Math.max(m.tikSec, e.sec);
       else if (e.t === 'mandSec') m.mandSec = Math.min(m.mandSec, e.sec);
+      else if (e.t === 'herstel') m.herstel *= sx(e.x);
+      else if (e.t === 'gebKans') m.gebKans *= sx(e.x);
+      else if (e.t === 'gebKansT') m.gebKansT[e.id] = (m.gebKansT[e.id] || 1) * sx(e.x);
+      else if (e.t === 'geenGeb') m.geenGeb[e.id] = true;
+      else if (e.t === 'nacht') m.nacht += e.plus * s;
+      else if (e.t === 'nachtTev') m.nachtTev += e.plus * s;
+      else if (e.t === 'tevHerstel') m.tevHerstel *= sx(e.x);
+      else if (e.t === 'schild') m.schild = true;
+      else if (e.t === 'voorhoede') m.voorhoede = true;
     };
     const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...Object.keys(S.star).filter(k => S.star[k])];
     for (const id of ids) for (const e of fx(id)) zet(e);
@@ -128,7 +139,17 @@ window.ENGINE = (() => {
   // Tevredenheid en verbindingen per district
   function tevredenheid(S, d, m = mods(S)) {
     const over = Math.max(0, inDistrict(S, d).length - (C.drukteGrens + m.drukte));
-    return 100 + (m.tev[d] || 0) + Math.min(C.zangTevMax, C.zangTev * S.n.zangplek) - over * C.druktePerLomari;
+    const dip = (S.geb || []).filter(g => g.tev && g.d === d).length * BAL.gebTev * (m.schild ? .5 : 1);
+    return 100 + (m.tev[d] || 0) + Math.min(C.zangTevMax, C.zangTev * S.n.zangplek) - over * C.druktePerLomari
+      + (isNacht(S) ? m.nachtTev : 0) - dip;
+  }
+  // Dag en nacht: S.klok loopt alleen als je speelt (en offline door, zonder nacht-effect)
+  const isNacht = S => ((S.klok || 0) % BAL.dagSec) >= BAL.dagSec * (1 - BAL.nachtDeel);
+  const nachtF = (S, m) => !m.geenNacht && isNacht(S) ? Math.min(1, BAL.nachtProd + m.nacht) : 1;
+  const stilF = (S, b, m) => (S.geb || []).some(g => g.b === b) ? (m.schild ? .5 : 0) : 1;
+  function dagInfo(S) {
+    const t = (S.klok || 0) % BAL.dagSec, grens = BAL.dagSec * (1 - BAL.nachtDeel), nacht = t >= grens;
+    return { nacht, rest: nacht ? BAL.dagSec - t : grens - t };
   }
   const tevFactor = (S, d, m) => Math.min(C.tevMax, Math.max(C.tevMin, tevredenheid(S, d, m))) / 100;
   function verbindFactor(S, d, m, lijst) {
@@ -149,14 +170,14 @@ window.ENGINE = (() => {
 
   // Productie en verbruik per seconde. Ketens kunnen stilvallen zonder input.
   function rates(S, m = mods(S), dt = 1) {
-    const g = globaal(S, m), bed = bedden(S, m), job = banen(S), lijst = verbindingen(S);
+    const g = globaal(S, m) * nachtF(S, m), bed = bedden(S, m), job = banen(S), lijst = verbindingen(S);
     const staff = job ? Math.min(1, bed / job) : 1;
     const prod = {}, use = {}; RK.forEach(k => { prod[k] = 0; use[k] = 0; });
     const dF = {}; for (const d of [...Object.keys(D.DISTRICTS), ...Object.keys(D.GEBIEDEN)]) dF[d] = (m.dist[d] || 1) * tevFactor(S, d, m) * verbindFactor(S, d, m, lijst);
     const keten = [];
     for (const b of BK) {
       const x = B[b]; if (!x.p || !S.n[b]) continue;
-      const f = S.n[b] * 2 ** (S.fase[b] - 1) * staff * g * BAL.productieSchaal * dF[x.d];
+      const f = S.n[b] * 2 ** (S.fase[b] - 1) * staff * g * BAL.productieSchaal * dF[x.d] * stilF(S, b, m);
       if (x.c) { keten.push([b, f]); continue; }
       for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * (m.res[k] || 1);
     }
@@ -273,7 +294,7 @@ window.ENGINE = (() => {
   // Wat één tik oplevert (zonder het toe te passen)
   function tikWaarde(S, m = mods(S), x = 1) {
     const R = rates(S, m), ingezet = Object.keys(S.lom || {}).filter(id => plek(S, id)).length, uit = {};
-    const f = m.verzamel * m.tikX * (1 + m.tikLomari * ingezet) * x;
+    const f = m.verzamel * m.tikX * (1 + m.tikLomari * ingezet) * x * (isNacht(S) ? BAL.nachtTik : 1);
     for (const k of ['hout', 'bladeren', ...m.tikRes]) uit[k] = Math.max(1, R.prod[k] * m.tikSec) * f;
     return uit;
   }
@@ -318,7 +339,7 @@ window.ENGINE = (() => {
     if (e.district) return `${e.district} open`;
     if (e.fase3) return `Een gebouw in ${e.fase3} in groeifase 3`;
     if (e.bewoners) return `${e.bewoners} bewoners`;
-    if (e.gebeurtenissen) return `${e.gebeurtenissen === 1 ? 'Eerste bosgebeurtenis' : e.gebeurtenissen + ' bosgebeurtenissen'} (volgt in deel B)`;
+    if (e.gebeurtenissen) return `${e.gebeurtenissen === 1 ? 'Eerste bosgebeurtenis' : e.gebeurtenissen + ' bosgebeurtenissen'} `;
     if (e.gebouw) return `Eerste ${B[e.gebouw[0]].naam}`;
     if (e.upgrades) return `${e.upgrades} upgrades gekocht`;
     if (e.ooit) return `${e.ooit[1].toLocaleString('nl-NL')} ${RES[e.ooit[0]].naam.toLowerCase()} gemaakt`;
@@ -376,6 +397,44 @@ window.ENGINE = (() => {
     const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + v); return { res: k, v: S.r[k] - voor };
   }
 
+  // ---------- dag, nacht en bosgebeurtenissen (alleen als je speelt) ----------
+  function startGeb(S, m) {
+    const opties = [];
+    for (const [id, x] of Object.entries(D.GEB)) {
+      if (m.geenGeb[id] || (x.nacht && !isNacht(S))) continue;
+      const doelen = x.tev ? S.open.filter(d => D.DISTRICTS[d] && !S.geb.some(g => g.tev && g.d === d))
+        : x.doel.filter(b => S.n[b] > 0 && S.open.includes(B[b].d) && !S.geb.some(g => g.b === b));
+      if (doelen.length) opties.push([id, x, doelen, m.gebKansT[id] || 1]);
+    }
+    let r = Math.random() * opties.reduce((a, o) => a + o[3], 0);
+    const o = opties.find(o => (r -= o[3]) < 0); if (!o) return null;
+    const [id, x, doelen] = o, doel = doelen[Math.floor(Math.random() * doelen.length)];
+    const duur = Math.round(BAL.gebDuur * m.herstel / (x.tev ? m.tevHerstel : 1));
+    S.gebeurtenissen = (S.gebeurtenissen || 0) + 1;
+    const g = { k: S.gebeurtenissen, id, over: duur, duur, ...(x.tev ? { tev: true, d: doel } : { b: doel, d: B[doel].d }) };
+    if (id === 'storm' && m.voorhoede) { const R = rates(S, m), voor = S.r.hout; S.r.hout = Math.min(cap(S, 'hout', m), S.r.hout + R.prod.hout * 3600); g.buit = S.r.hout - voor; }
+    S.geb.push(g); return g;
+  }
+  function wereld(S, dt, m = mods(S)) {
+    const ev = [], wasNacht = isNacht(S);
+    S.klok = (S.klok || 0) + dt; S.geb = S.geb || [];
+    if (isNacht(S) !== wasNacht) ev.push({ t: isNacht(S) ? 'nacht' : 'dag' });
+    for (const g of S.geb) g.over -= dt;
+    for (const g of S.geb.filter(g => g.over <= 0)) ev.push({ t: 'gebKlaar', g });
+    S.geb = S.geb.filter(g => g.over > 0);
+    S.gebT = (S.gebT || 0) + dt;
+    while (S.gebT >= BAL.gebSec) {
+      S.gebT -= BAL.gebSec;
+      if (totaal(S) >= BAL.gebVanaf && S.geb.length < BAL.gebMax && Math.random() < BAL.gebKans * m.gebKans) { const g = startGeb(S, m); if (g) ev.push({ t: 'geb', g }); }
+    }
+    return ev;
+  }
+  function help(S, k) {   // tikken op een gebeurtenis helpt: elke tik haalt een paar seconden van de duur af
+    const g = (S.geb || []).find(g => g.k === k); if (!g) return null;
+    g.over -= BAL.helpSec; if (g.over <= 0) { S.geb = S.geb.filter(x => x !== g); return { klaar: true, g }; }
+    return { klaar: false, g };
+  }
+
   function stats(S) {
     const m = mods(S);
     return { tot: totaal(S), bedden: bedden(S, m), open: echteOpen(S), gebieden: S.open.length - echteOpen(S), maxFase: Math.max(...BK.map(b => S.fase[b])),
@@ -406,7 +465,9 @@ window.ENGINE = (() => {
   function offline(S, sec) {
     const m = mods(S), limiet = Math.min(24, m.offline), eff = Math.min(sec, limiet * 3600), voor = { ...S.r }, rend = Math.min(.85, BAL.offlineRendement + m.offlineEff);
     const stappen = Math.max(1, Math.min(60, Math.ceil(eff / 60))), vondstVoor = S.vondstTot, ev = [];
-    for (let i = 0; i < stappen; i++) { const mm = mods(S); tick(S, eff / stappen, rend, mm); ev.push(...lomTick(S, eff / stappen, mm, true)); }
+    S.geb = []; S.gebT = 0;   // gebeurtenissen lossen zich op terwijl je weg bent; er komen geen nieuwe
+    for (let i = 0; i < stappen; i++) { const mm = mods(S); mm.geenNacht = true; tick(S, eff / stappen, rend, mm); ev.push(...lomTick(S, eff / stappen, mm, true)); }
+    S.klok = (S.klok || 0) + sec;
     if (m.nachtmanden && m.auto.verzamel) verzamel(S, Math.floor(eff / m.mandSec) * rend);
     const winst = {}; RK.forEach(k => winst[k] = S.r[k] - voor[k]);
     return { sec, eff, winst, limiet, rend, vondsten: S.vondstTot - vondstVoor, ev };
@@ -416,7 +477,7 @@ window.ENGINE = (() => {
   function perStuk(S, b, m = mods(S)) {
     const x = B[b]; if (!x.p) return {};
     const lijst = verbindingen(S), bed = bedden(S, m), job = banen(S), staff = job ? Math.min(1, bed / job) : 1;
-    const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
+    const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * nachtF(S, m) * stilF(S, b, m) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
     return Object.fromEntries(Object.entries(x.p).map(([k, v]) => [k, v * f * (m.res[k] || 1)]));
   }
   function waardeRate(S, m = mods(S)) { const R = rates(S, m); return RK.reduce((a, k) => a + RES[k].waarde * (R.prod[k] - R.use[k]), 0); }
@@ -426,5 +487,6 @@ window.ENGINE = (() => {
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(.85, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
+    wereld, help, dagInfo, isNacht,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };
 })();
