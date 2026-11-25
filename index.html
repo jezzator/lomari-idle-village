@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1c1f16">
+<link rel="apple-touch-icon" href="icoon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lomari">
+<title>Lomari: Idle Village</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: warm, rustig, ambachtelijk — een dorp dat groeit
+IDEA: het perkament van de districtsbordjes op de dorpsplaat; elk paneel is zo'n bordje
+PICTURE: de dorpsplaat zelf, met tikbare districten en tellers
+COLOUR and TYPE: diep mosbruin, perkament, lantaarngoud, bloemviolet; Alegreya + Alegreya Sans
+LAYOUT: grondstoffen boven, plaat links, paneel rechts; op mobiel plaat, dan paneel */
+:root{color-scheme:dark;--bg:#1c1f16;--bg2:#262a1d;--perk:#f2e4c4;--perk2:#e6d3aa;--inkt:#2b2116;--mute:#6e5d45;--goud:#e9a93b;--viol:#8a5fb0;--groen:#7fae5a;--rood:#c4513f;--lijn:#3a3f2b}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--perk);font:16px/1.45 "Alegreya Sans",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Alegreya,Georgia,serif;margin:0;line-height:1.1}
+button{font:inherit}
+.top{padding-top:max(8px,env(safe-area-inset-top))!important;padding-left:max(10px,env(safe-area-inset-left))!important;padding-right:max(10px,env(safe-area-inset-right))!important;position:sticky;top:0;z-index:5;background:rgba(28,31,22,.96);border-bottom:1px solid var(--lijn);padding:8px max(2vw,10px)}
+.kop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;max-width:1400px;margin:0 auto 6px}
+.kop h1{font-size:22px;color:var(--goud)}
+#nova{color:#c9a6ea;font-weight:700;font-size:14px}
+#res{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 8px;max-width:1400px;margin:auto}
+.rs{font:inherit;text-align:left;border:1px solid transparent;cursor:pointer;color:inherit;width:100%;display:grid;grid-template-columns:auto auto;align-items:baseline;column-gap:4px;font-size:13px;padding:3px 6px;border-radius:8px;background:var(--bg2)}
+.rs .rn{grid-column:1/3;color:#cdbf9f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs i,.kc i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.rs b{font-size:16px;color:var(--perk)}.rs small{color:#9a8e74}
+.rs em{grid-column:1/3;font-style:normal;color:var(--groen);font-size:12px}.rs em.neg{color:#ff8f7a}
+.rs.vol b{color:var(--goud)}
+.vul{grid-column:1/3;height:3px;background:#3a3f2b;border-radius:2px;overflow:hidden;margin-top:2px}.vul i{display:block;height:100%;background:#7fae5a}
+.tijd{grid-column:1/3;font-size:11px;color:#9a8e74;min-height:14px}.rs.vol .tijd{color:#ff8f7a;font-weight:700}
+.rs.bijna .vul i{background:var(--goud)}.rs.vol .vul i{background:#ff8f7a}
+main{padding-bottom:max(40px,env(safe-area-inset-bottom))!important;max-width:1400px;margin:auto;display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;padding:12px max(2vw,10px) 40px}
+.plaat{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 8px 30px #0008;aspect-ratio:1536/1024;background:#2a2a1a}
+.plaat img{width:100%;height:100%;display:block;object-fit:cover}
+#spots{position:absolute;inset:0}
+.spot{position:absolute;border:2px solid transparent;background:transparent;border-radius:12px;cursor:pointer;transition:background .2s,border-color .2s}
+.spot:hover{background:#f2e4c41a;border-color:#f2e4c470}
+.spot.sel{border-color:var(--goud);background:#e9a93b1f}
+.spot.dicht{background:#0f120bb8}
+.spot.dicht:hover{background:#0f120b90}
+.spot .tag{position:absolute;right:6px;bottom:6px;background:var(--perk);color:var(--inkt);font-weight:700;font-size:13px;padding:1px 8px;border-radius:10px;box-shadow:0 2px 6px #0007}
+.spot.dicht .tag{background:#3a3f2b;color:var(--perk)}
+.dorpinfo{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px}
+#bew{color:#cdbf9f;font-size:14px;flex:1 1 220px}
+#hon{color:#ff8f7a;font-weight:700;font-size:14px}
+#verzamel{min-height:48px;padding:0 22px;border-radius:24px;border:0;background:var(--goud);color:var(--inkt);font-weight:700;font-size:17px;cursor:pointer}
+#verzamel:active{transform:scale(.97)}
+.zweef{position:absolute;right:0;top:-6px;color:var(--goud);font-weight:700;font-size:14px;pointer-events:none;animation:op .9s ease-out forwards}
+@keyframes op{to{transform:translateY(-26px);opacity:0}}
+.zijde{display:flex;flex-direction:column;min-height:0}
+#tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+#tabs button{min-height:44px;padding:0 12px;border-radius:22px;border:1px solid var(--lijn);background:var(--bg2);color:var(--perk);cursor:pointer;font-weight:500}
+#tabs button[aria-selected=true]{background:var(--perk);color:var(--inkt);font-weight:700}
+#upn,.bdg{background:var(--viol);color:#fff;border-radius:9px;padding:0 6px;font-size:12px;margin-left:4px}#upn:empty,.bdg:empty{display:none}
+#paneel{scroll-margin-top:150px;background:var(--perk);color:var(--inkt);border-radius:14px;padding:14px;box-shadow:inset 0 0 0 3px var(--perk2)}
+@media(min-width:900px){#paneel{max-height:calc(100vh - 210px);overflow:auto}}
+#paneel h2{font-size:24px;margin:14px 0 8px}#paneel h2:first-child{margin-top:0}
+.dkop{border-left:6px solid var(--dk);padding-left:10px;margin-bottom:10px}.dkop p{margin:2px 0 0;color:var(--mute)}
+.modi{display:flex;gap:4px;margin-bottom:8px}
+.modi button{min-height:40px;min-width:56px;border-radius:10px;border:1px solid #c9b48a;background:#fbf3e1;cursor:pointer;color:var(--inkt)}
+.modi button.aan{background:var(--inkt);color:var(--perk)}
+.gb{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:start;padding:10px 0;border-top:1px solid #d9c59c}
+.ico svg{width:48px;height:48px}
+.gi h3{font-size:18px}.gi p{margin:2px 0;font-size:14px;color:var(--mute)}
+.n{font-family:"Alegreya Sans";font-weight:700;color:var(--inkt);background:#e6d3aa;border-radius:8px;padding:0 7px;margin-left:4px;font-size:15px}
+.fn{font:500 12px "Alegreya Sans";color:#7b4f9e;margin-left:6px}
+.kost{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:14px}
+.kc{white-space:nowrap;color:var(--inkt)}.kc.mis{color:var(--rood);font-weight:700}
+.knop{min-height:44px;min-width:92px;padding:4px 14px;border:0;border-radius:12px;background:#3d5a2c;color:#f7efdc;font-weight:700;cursor:pointer;white-space:nowrap}
+.knop:disabled{background:#cbb991;color:#7a6a50;cursor:default}
+.knop.klein{min-height:38px;min-width:0;margin-top:4px}
+.knop.rood{background:var(--rood)}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--viol);outline-offset:2px}
+.fase{background:#f8eedb;border:1px dashed #b99b62;border-radius:10px;padding:8px;margin-top:6px;font-size:14px;display:grid;gap:4px}
+.bar{height:6px;background:#dcc89f;border-radius:3px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--viol)}
+.nb{font-size:12px;color:var(--mute)}
+.kaart{background:#fbf3e1;border-radius:12px;padding:12px;margin-bottom:10px}
+.kaart p{margin:6px 0}
+.hg{border:2px solid #c9a6ea}.groot{font-size:18px}
+.up{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid #d9c59c}
+.up h3{font-size:17px}.up p{margin:2px 0;font-size:14px;color:var(--mute)}
+.up.slot{opacity:.6}.up.heb h3{color:#3d5a2c}
+.eis{font-style:italic}
+.tak{font-size:18px;margin:12px 0 2px;color:#7b4f9e}
+.intro{font-size:14px;color:var(--mute);margin:4px 0}
+.ach{display:flex;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #d9c59c;color:var(--mute)}
+.ach span{width:26px;height:26px;border-radius:50%;border:2px solid #c9b48a;display:grid;place-items:center;font-weight:700;color:#fff;flex:none}
+.ach.heb{color:var(--inkt)}.ach.heb span{background:#3d5a2c;border-color:#3d5a2c}
+textarea{width:100%;font:13px/1.3 monospace;border-radius:8px;border:1px solid #c9b48a;padding:8px;background:#fffaf0;color:var(--inkt)}
+select{min-height:44px;border-radius:10px;border:1px solid #c9b48a;background:#fffaf0;padding:0 10px;font:16px "Alegreya Sans";color:var(--inkt)}
+.rij{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sw{display:flex;gap:8px;align-items:center;min-height:44px}.sw input{width:22px;height:22px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}td,th{text-align:left;padding:4px 6px;border-top:1px solid #d9c59c}td:last-child,th:last-child{text-align:right;white-space:nowrap}
+.dlg{position:fixed;inset:0;background:#000a;display:none;place-items:center;padding:16px;z-index:20}
+.dlg.open{display:grid}
+.dlg>div{background:var(--perk);color:var(--inkt);border-radius:16px;padding:20px;max-width:440px;width:100%;box-shadow:inset 0 0 0 3px var(--perk2)}
+.dlg h2{font-size:24px;margin-bottom:6px}
+#toasts{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:grid;gap:6px;z-index:30;pointer-events:none;width:min(92vw,420px)}
+.toast{background:var(--inkt);color:var(--perk);border:1px solid var(--goud);border-radius:12px;padding:8px 14px;font-size:14px;animation:in .25s ease-out}
+@keyframes in{from{transform:translateY(10px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.toast,.zweef{animation:none}.spot{transition:none}}
+
+.spot .lmk{position:absolute;left:6px;bottom:6px;display:flex}.spot .lmk img{width:30px;height:30px;background:#2a2a1a;border-radius:50%;border:2px solid var(--perk);margin-right:-6px;box-shadow:0 2px 4px #0008}
+#bol{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:0;cursor:pointer;background:radial-gradient(circle at 40% 35%,#fffbe6,#f7d774 40%,#e9a93b88 65%,transparent 72%);box-shadow:0 0 24px 8px #f7d77488;animation:puls 1.6s ease-in-out infinite}
+@keyframes puls{50%{transform:scale(1.15)}}
+.dinfo{display:grid;gap:2px;font-size:14px;color:var(--mute);margin:-4px 0 10px}.dinfo b{color:var(--inkt)}
+.lmgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin:10px 0}
+.lm{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;background:#fbf3e1;border-radius:12px;padding:10px;border:2px solid transparent}
+.lm.actief{border-color:#3d5a2c}
+.lm img{width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid #e6d3aa}
+.lm.slot img{filter:grayscale(1) brightness(.6)}.lm.slot{opacity:.75}
+.lm h3{font-size:18px}.lm p{margin:2px 0;font-size:13.5px;color:var(--mute)}.lm .gave{color:var(--inkt)}.lm .st{font-style:italic}
+.lm .spec{color:#7b4f9e;font-weight:500}
+.wl{display:flex;gap:6px;align-items:center;font-size:14px;margin-top:6px}.wl select{flex:1;min-height:40px}
+.vb{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;padding:8px 0;border-top:1px solid #d9c59c}
+.vb h3{font-size:16px}.vb p{margin:1px 0;font-size:13.5px;color:var(--mute)}.vb.aan h3{color:#3d5a2c}.vb.aan .eis{color:#3d5a2c;font-style:normal;font-weight:700}
+.vb.later{opacity:.65}
+.vbl{display:flex}.vbl img{width:34px;height:34px;border-radius:50%;border:2px solid var(--perk);margin-right:-8px}.vbl img.grijs{filter:grayscale(1) brightness(.6)}
+.vd{border:2px solid var(--goud)}
+@media(prefers-reduced-motion:reduce){#bol{animation:none}}
+.rs:hover{border-color:#e9a93b66}
+.gids{background:#3d5a2c;color:#f7efdc;border-radius:12px;padding:12px;margin-bottom:12px}.gids p{margin:4px 0;font-size:15px}.gids small,.gids .nb{color:#d9e6c8}
+.gids .knop{background:var(--goud);color:var(--inkt)}.gids .knop.licht{background:transparent;color:#f7efdc;border:1px solid #f7efdc88}
+.gi p b{color:var(--inkt)}
+.fase{grid-template-columns:auto minmax(0,1fr);align-items:center}.fase .kost,.fase .knop{grid-column:1/3}
+.fz{display:flex;align-items:center;gap:2px}.fz svg{width:36px;height:36px}.fz span{color:var(--mute)}
+.ups{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.upl{font:13px "Alegreya Sans";border-radius:10px;border:1px solid #c9b48a;background:#fbf3e1;color:var(--inkt);padding:3px 8px;cursor:pointer;min-height:30px;text-align:left}
+.upl span{color:var(--mute)}.upl.heb{background:#dfe9cf;border-color:#3d5a2c;color:#2c4320}.upl.kan{border-color:var(--viol);background:#f1e6f7}.upl.nog{opacity:.6}
+.up .wat{color:var(--inkt);font-weight:500}.up .nu{color:#3d5a2c;font-size:14px}
+.eisl{list-style:none;margin:4px 0 0;padding:0;font-size:14px;color:var(--mute)}.eisl li.ok{color:#3d5a2c}
+.gekocht{font-size:13.5px;color:#3d5a2c;background:#e3ecd6;border-radius:8px;padding:6px 10px;margin:6px 0}
+.uitleg{font-size:14px;color:var(--mute);background:#fbf3e1;border-radius:10px;padding:8px 10px;margin:0 0 8px}.uitleg b{color:var(--inkt)}
+#gebieden{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;color:#cdbf9f;font-size:14px}#gebieden:empty{display:none}
+#gebieden button{min-height:40px;border-radius:20px;border:2px solid var(--dk);background:var(--bg2);color:var(--perk);padding:0 14px;cursor:pointer;font:500 15px "Alegreya Sans"}
+#gebieden button.sel{background:var(--dk);color:#fff}
+#db h3{font-size:17px;margin:10px 0 2px}#db ul{margin:2px 0;padding-left:20px;font-size:14px}#db p{margin:6px 0}
+@media(max-width:520px){.spot .lmk img{width:18px;height:18px}}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+@media(max-width:600px){#tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-10px;padding-inline:10px}#tabs button{flex:none}.dorpinfo{margin-top:6px}#verzamel{min-height:44px}#toasts{bottom:10px}.toast{font-size:13px;padding:6px 12px;opacity:.95}}
+@media(max-width:520px){#res{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.rs{padding:2px 4px;font-size:11px}.rs b{font-size:13px}.rs small{font-size:10px}.rs em{font-size:10px}.rs .rn{font-size:10px}.kop h1{font-size:18px}.spot .tag{font-size:11px;right:3px;bottom:3px}.gb{grid-template-columns:40px minmax(0,1fr)}.gb .knop{grid-column:2}.ico svg{width:40px;height:40px}}
+</style></head><body>
+<header class="top">
+  <div class="kop"><h1>Lomari: Idle Village</h1><span id="nova"></span></div>
+  <div id="res" aria-live="off"></div>
+</header>
+<main>
+  <section>
+    <div class="plaat"><img src="dorp.jpg" alt="Het Lomari-dorp in de oude boom, met de zeven districten"><div id="spots"></div><button id="bol" hidden aria-label="Lichtbol: tik om te vangen"></button></div>
+    <div id="gebieden"></div>
+    <div class="dorpinfo"><span id="bew"></span><span id="hon" hidden>Voedseltekort: productie gehalveerd</span><button id="verzamel">Verzamelen</button></div>
+  </section>
+  <section class="zijde">
+    <nav id="tabs" role="tablist">
+      <button data-tab="dorp" aria-selected="true">Dorp</button>
+      <button data-tab="lomari" aria-selected="false">Lomari<span id="lmn" class="bdg"></span></button>
+      <button data-tab="upgrades" aria-selected="false">Upgrades<span id="upn"></span></button>
+      <button data-tab="stam" aria-selected="false">Sterrenstam</button>
+      <button data-tab="prest" aria-selected="false">Prestaties</button>
+      <button data-tab="instel" aria-selected="false">Instellingen</button>
+    </nav>
+    <div id="paneel"></div>
+  </section>
+</main>
+<div class="dlg" id="dlg" role="dialog" aria-modal="true" aria-labelledby="dt"><div><h2 id="dt"></h2><div id="db"></div><div class="rij"><button class="knop" id="dja">Verder</button><button class="knop" id="dnee" hidden style="background:#cbb991;color:#2b2116">Annuleer</button></div></div></div>
+<div id="toasts"></div>
+<script src="data.js"></script>
+<script src="lomari.js"></script>
+<script src="engine.js"></script>
+<script src="balans.js"></script>
+<script src="ui.js"></script>
+<script>if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body></html>
