@@ -135,6 +135,7 @@ function paneelDorp() {
     if (D.GEBIEDEN[d]) h += `<p class="uitleg"><b>Gebied:</b> blijft open na elke Hergroei. ${D.GEBIEDEN[d].bonus}</p>`;
     h += `<div class="dinfo">${S.lom.sora ? `<span>Tevredenheid <b>${Math.round(E.tevredenheid(S, d))}%</b></span>` : ''}
       ${hier.length > 2 ? `<span>Drukte: ${hier.length} Lomari in één district kan de tevredenheid verlagen</span>` : ''}
+      ${(() => { const t = districtOpbrengst(d); const r = Object.entries(t).filter(([, v]) => v > 0); return r.length ? `<span><b>Maakt nu:</b> ${r.map(([k, v]) => `${ico(k)}${fmtR(v)} ${RES[k].naam.toLowerCase()}/s`).join(' · ')}</span>` : ''; })()}
       <span>Verbonden met: ${vb.length ? vb.join(', ') : 'nog niets'}</span>
       <span>Lomari hier: ${hier.length ? hier.map(id => E.lomDef(id).naam).join(', ') : 'geen'}${thuis.length ? ` · thuis: ${thuis.join(', ')}` : ''}</span></div>`;
   }
@@ -345,9 +346,10 @@ function toast(t) {
 function kort(s) { s = Math.ceil(s); const d = Math.floor(s / 86400), u = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
   return d ? `${d}d ${u}u` : u ? `${u}u ${m}m` : m ? `${m}m` : `${s}s`; }
 function volTekst(nu, c, net) {
+  const smal = innerWidth < 600;
   if (nu >= c * .999) return 'vol';
-  if (net > 1e-9) return 'vol over ' + kort((c - nu) / net);
-  if (net < -1e-9) return 'op over ' + kort(nu / -net);
+  if (net > 1e-9) return (smal ? 'vol ' : 'vol over ') + kort((c - nu) / net);
+  if (net < -1e-9) return (smal ? 'op ' : 'op over ') + kort(nu / -net);
   return '';
 }
 // ---------- grondstof-uitleg ----------

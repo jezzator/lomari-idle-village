@@ -157,10 +157,10 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}td,th{te
 .gb.groei .ico{animation:groei 1.2s ease-out}@keyframes groei{0%{filter:drop-shadow(0 0 0 #f2c46a);transform:scale(1)}40%{filter:drop-shadow(0 0 14px #f2c46a);transform:scale(1.25)}100%{filter:none;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.spot.leeft::after,.stijg,.gb.flits,.gb.groei .ico{animation:none}}
 #db h3{font-size:17px;margin:10px 0 2px}#db ul{margin:2px 0;padding-left:20px;font-size:14px}#db p{margin:6px 0}
-@media(max-width:380px){.rs{padding:3px}.rs b{font-size:12.5px}.rs small{font-size:9px}.rs .rn .ri{width:12px;height:12px}}
+@media(max-width:380px){.rs .tijd{grid-row:4!important;grid-column:1/4!important;text-align:left!important}.rs{padding:3px}.rs b{font-size:12.5px}.rs small{font-size:9px}.rs .rn .ri{width:12px;height:12px}}
 @media(max-width:520px){.ico svg{width:44px;height:44px}.gb{grid-template-columns:44px minmax(0,1fr)}.banier{width:30px;height:38px}.spot .lmk img{width:18px;height:18px}}
 @media(max-width:900px){main{grid-template-columns:1fr}}
-@media(max-width:600px){.rs{grid-template-columns:auto auto minmax(0,1fr);column-gap:3px;padding:3px 5px}.rs .rn{grid-column:auto;font-size:0}.rs .rn .ri{width:15px;height:15px;margin:0}.rs b{font-size:14px}.rs small{font-size:10px;align-self:center;white-space:nowrap}.rs em{display:none}.rs .vul{grid-column:1/4}.rs .tijd{grid-column:1/4;font-size:10px;min-height:0}.kop{margin-bottom:4px}.kop h1{font-size:16px}#tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-10px;padding-inline:10px}#tabs button{flex:none}.dorpinfo{margin-top:6px}#verzamel{min-height:44px}#toasts{bottom:10px}.toast{font-size:13px;padding:6px 12px;opacity:.95}}
+@media(max-width:600px){.rs{grid-template-columns:auto auto minmax(0,1fr);column-gap:3px;padding:3px 5px}.rs .rn{grid-column:auto;font-size:0}.rs .rn .ri{width:15px;height:15px;margin:0}.rs b{font-size:14px}.rs small{font-size:10px;align-self:center;white-space:nowrap}.rs em{display:block;grid-row:3;grid-column:1/3;font-size:10px;white-space:nowrap}.rs .vul{grid-column:1/4;grid-row:2}.rs .tijd{grid-row:3;grid-column:3;text-align:right;font-size:10px;min-height:0;white-space:nowrap}.kop{margin-bottom:4px}.kop h1{font-size:16px}#tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-10px;padding-inline:10px}#tabs button{flex:none}.dorpinfo{margin-top:6px}#verzamel{min-height:44px}#toasts{bottom:10px}.toast{font-size:13px;padding:6px 12px;opacity:.95}}
 @media(max-width:520px){#res{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.kop h1{font-size:18px}.spot .tag{font-size:11px;right:3px;bottom:3px}.gb{grid-template-columns:40px minmax(0,1fr)}.gb .knop{grid-column:2}.ico svg{width:40px;height:40px}}
 
 /* ---- Dorp schermvullend, paneel als lade ---- */
@@ -206,6 +206,7 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
  .kop{margin-bottom:4px}.kop h1{font-size:20px}
 }
 #toasts{bottom:calc(var(--bar) + 12px)!important;z-index:30}
+.rs[hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){.lade{transition:none}}
 </style></head><body>
 <header class="top">
