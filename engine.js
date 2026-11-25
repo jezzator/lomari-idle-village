@@ -199,7 +199,7 @@ window.ENGINE = (() => {
   function tick(S, dt, rendement = 1, m = mods(S)) {
     const R = rates(S, m, dt);
     for (const k of RK) {
-      const eff = rendement * (rendement < 1 && k === 'energie' ? m.offlineEnergie : 1);
+      const eff = rendement * (m.geenNacht && k === 'energie' ? m.offlineEnergie : 1);
       const net = (R.prod[k] - R.use[k]) * eff;
       S.r[k] = Math.max(0, Math.min(cap(S, k, m), S.r[k] + net * dt));
       if (R.prod[k] > 0) {
@@ -463,7 +463,7 @@ window.ENGINE = (() => {
 
   // Offline: in stappen doorrekenen, met rendement en limiet. Band en vondsten lopen door.
   function offline(S, sec) {
-    const m = mods(S), limiet = Math.min(24, m.offline), eff = Math.min(sec, limiet * 3600), voor = { ...S.r }, rend = Math.min(.85, BAL.offlineRendement + m.offlineEff);
+    const m = mods(S), limiet = Math.min(24, m.offline), eff = Math.min(sec, limiet * 3600), voor = { ...S.r }, rend = Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff);
     const stappen = Math.max(1, Math.min(60, Math.ceil(eff / 60))), vondstVoor = S.vondstTot, ev = [];
     S.geb = []; S.gebT = 0;   // gebeurtenissen lossen zich op terwijl je weg bent; er komen geen nieuwe
     for (let i = 0; i < stappen; i++) { const mm = mods(S); mm.geenNacht = true; tick(S, eff / stappen, rend, mm); ev.push(...lomTick(S, eff / stappen, mm, true)); }
@@ -485,7 +485,7 @@ window.ENGINE = (() => {
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k) => cap(S, k, mods(S)), kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
-    waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(.85, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
+    waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     wereld, help, dagInfo, isNacht,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };

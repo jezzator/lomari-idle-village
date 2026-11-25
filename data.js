@@ -25,7 +25,8 @@ window.DATA = (() => {
     faseBij: [10, 25, 50, 100], // aantallen voor fase 2..5
     faseKostMult: [8, 40, 200, 1000],
     faseExtra: [{}, { steen: 1, gereedschap: .2 }, { steen: 1, gereedschap: .5 }, { gereedschap: 1, kristal: .05 }],
-    offlineRendement: 0.5,
+    offlineRendement: 1,        // offline even snel als spelen; upgrades en Yomi tillen het tot offlineMax
+    offlineMax: 1.5,
     offlineUren: 8,
     novaPct: 0.03,
     hergroeiEnergie: 100000,     // Hergroei beschikbaar na zoveel energie (moment dat Veyra verschijnt)
@@ -124,8 +125,8 @@ window.DATA = (() => {
     { id: 'voorraadw',cat: 'C', naam: 'Voorraadwacht',          tekst: 'Bouwt vanzelf een Bessentuin bij voedseltekort', k: { hout: 2000, bladeren: 1000 }, eis: { b: ['bessen', 15] }, fx: [{ t: 'auto', id: 'voedsel' }] },
     { id: 'groeiw',   cat: 'C', naam: 'Groeiwachters',          tekst: 'Voert groeifases vanzelf uit zodra ze betaalbaar zijn', k: { hout: 100000, steen: 20000, gereedschap: 3000 }, eis: { u: ['vakman'] }, fx: [{ t: 'auto', id: 'fase' }] },
     { id: 'langslaap',cat: 'G', naam: 'Lange slaap',            tekst: 'Offline-limiet +2 uur',              k: { hout: 1500, bladeren: 1000, steen: 100 }, eis: { b: ['familie', 1] }, fx: [{ t: 'offline', uren: 2 }] },
-    { id: 'nachtwak', cat: 'G', naam: 'Nachtwakers',            tekst: 'Offline-opbrengst +10%',             k: { hout: 3000, bladeren: 1500 }, eis: { tot: 50 }, fx: [{ t: 'offlineEff', plus: .1 }] },
-    { id: 'stilwerk', cat: 'G', naam: 'Stille werkplaatsen',    tekst: 'Offline-opbrengst nog eens +10%',    k: { hout: 40000, steen: 8000, gereedschap: 500 }, eis: { u: ['nachtwak'], d: 'Frikto' }, fx: [{ t: 'offlineEff', plus: .1 }] },
+    { id: 'nachtwak', cat: 'G', naam: 'Nachtwakers',            tekst: 'Offline-opbrengst +20%',             k: { hout: 3000, bladeren: 1500 }, eis: { tot: 50 }, fx: [{ t: 'offlineEff', plus: .2 }] },
+    { id: 'stilwerk', cat: 'G', naam: 'Stille werkplaatsen',    tekst: 'Offline-opbrengst nog eens +20%',    k: { hout: 40000, steen: 8000, gereedschap: 500 }, eis: { u: ['nachtwak'], d: 'Frikto' }, fx: [{ t: 'offlineEff', plus: .2 }] },
     { id: 'wachters', cat: 'G', naam: 'Wakkere wachters',       tekst: 'Offline-limiet +4 uur',              k: { hout: 60000, bladeren: 30000, steen: 10000 }, eis: { u: ['langslaap'], tot: 150 }, fx: [{ t: 'offline', uren: 4 }] },
     { id: 'nachtmand',cat: 'G', naam: 'Nachtmanden',            tekst: 'Verzamelmanden blijven tikken terwijl je weg bent', k: { hout: 25000, lianen: 8000 }, eis: { u: ['manden'] }, fx: [{ t: 'nachtmanden' }] },
     { id: 'handsch',  cat: 'F', naam: 'Stevige handschoenen',   tekst: 'Elke tik ×1,5',                    k: { hout: 200 }, eis: { tik: 25 }, fx: [{ t: 'tikX', x: 1.5 }] },
