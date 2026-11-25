@@ -179,7 +179,7 @@ function paneelDorp() {
 }
 
 const CAT_UITLEG = { A: 'Meer productie van één grondstof of één district.', B: 'Goedkoper bouwen, meer opslag of minder voedselverbruik.',
-  C: 'Dingen die het dorp vanzelf gaat doen, ook als jij niet kijkt.', F: 'Meer uit elke tik op Verzamelen. Vooral sterk aan het begin en voor wie actief speelt.', D: 'Magie uit Voelari: versterkt alles tegelijk.', E: 'Meer bewoners en sterkere samenwerking tussen districten.' };
+  C: 'Dingen die het dorp vanzelf gaat doen, ook als jij niet kijkt.', G: 'Meer opbrengst en een langere limiet terwijl je weg bent.', F: 'Meer uit elke tik op Verzamelen. Vooral sterk aan het begin en voor wie actief speelt.', D: 'Magie uit Voelari: versterkt alles tegelijk.', E: 'Meer bewoners en sterkere samenwerking tussen districten.' };
 // Wat verandert er als je deze upgrade koopt? Rekent het verschil echt uit.
 function effectNu(u) {
   const m0 = E.mods(S), R0 = E.rates(S, m0), cap0 = Object.fromEntries(E.RK.map(k => [k, E.cap(S, k)])), bed0 = E.bedden(S);
@@ -197,6 +197,12 @@ function effectNu(u) {
     if (tx(w0) !== tx(w1)) t.push(`een tik geeft nu ${tx(w0)}, daarna ${tx(w1)}`);
     if (u.fx.some(e => e.t === 'ritme')) t.push('tik 10 keer binnen 3 seconden en de tiende tik geeft ×4');
     if (u.fx.some(e => e.t === 'mandSec')) t.push('de manden tikken twee keer zo vaak');
+  }
+  if (u.cat === 'G') {
+    const o0 = E.offlineInfo(S); S.up[u.id] = true; const o1 = E.offlineInfo(S); delete S.up[u.id];
+    if (o1.rend !== o0.rend) t.push(`offline-opbrengst van ${Math.round(o0.rend * 100)}% naar ${Math.round(o1.rend * 100)}%`);
+    if (o1.limiet !== o0.limiet) t.push(`offline-limiet van ${o0.limiet} naar ${o1.limiet} uur`);
+    if (u.fx.some(e => e.t === 'nachtmanden')) t.push(E.mods(S).auto.verzamel ? 'je manden tikken door terwijl je weg bent' : 'werkt zodra je Verzamelmanden hebt');
   }
   if (u.fx.some(e => e.t === 'faseKost')) t.push('elke fase-upgrade kost 20% minder');
   if (u.fx.some(e => e.t === 'auto')) t.push('gaat vanzelf, je hoeft er niets voor te doen');
@@ -289,7 +295,7 @@ function paneelPrest() {
 }
 function paneelInstel() {
   const m = E.mods(S);
-  return `<div class="kaart"><h2>Offline</h2><p>Terwijl je weg bent produceert het dorp ${Math.round(BAL.offlineRendement * 100)}% van normaal, maximaal ${m.offline} uur, en nooit meer dan je opslag.</p>
+  return `<div class="kaart"><h2>Offline</h2>${(() => { const o = E.offlineInfo(S); return `<p>Terwijl je weg bent produceert het dorp ${Math.round(o.rend * 100)}% van normaal, maximaal ${o.limiet} uur, en nooit meer dan je opslag.${o.manden ? ' Je Verzamelmanden tikken door.' : ''} Meer halen: upgrades onder Offline, Yomi, en Lange nacht in de Sterrenstam.</p>`; })()}
     <label class="sw"><input type="checkbox" id="offm" ${S.instel.offlineMelding ? 'checked' : ''}> Overzicht tonen bij terugkomst</label></div>
     <div class="kaart"><h2>Opslaan</h2><p>Het spel slaat elke 10 seconden op in deze browser. Om op een ander apparaat verder te spelen: kopieer de code en plak hem daar.</p>
     <textarea id="code" rows="3" aria-label="Spelcode"></textarea>

@@ -89,7 +89,7 @@ window.DATA = (() => {
   // Effecten: {t:'prod', res|d, x} · {t:'kost', x} · {t:'opslag', x} · {t:'onderhoud', x} · {t:'bed', b, plus}
   // {t:'brug', plus} · {t:'perDistrict', plus} · {t:'faseKost', x} · {t:'auto', id} · {t:'offline', uren}
   // {t:'magieMax', plus} · {t:'start', r:{...}} · {t:'startOpen', d} · {t:'faseBij', min}
-  const CAT = { A: 'Productie', B: 'Efficiëntie', C: 'Automatisering', F: 'Verzamelen', D: 'Magie', E: 'Gemeenschap' };
+  const CAT = { A: 'Productie', B: 'Efficiëntie', C: 'Automatisering', G: 'Offline', F: 'Verzamelen', D: 'Magie', E: 'Gemeenschap' };
   const U = [
     { id: 'bijlen',   cat: 'A', naam: 'Scherpe stenen bijlen',  tekst: 'Hout ×1,5',                        k: { hout: 300 }, eis: { b: ['hakplek', 10] }, fx: [{ t: 'prod', res: 'hout', x: 1.5 }] },
     { id: 'pluk1',    cat: 'A', naam: 'Plukmanden',             tekst: 'Bladeren ×1,5',                    k: { hout: 300, bladeren: 100 }, eis: { b: ['pluk', 10] }, fx: [{ t: 'prod', res: 'bladeren', x: 1.5 }] },
@@ -111,6 +111,11 @@ window.DATA = (() => {
     { id: 'nestbouw', cat: 'C', naam: 'Nestenbouwers',          tekst: 'Bouwt vanzelf woningen als er te weinig bewoners zijn', k: { hout: 3000, bladeren: 2000 }, eis: { b: ['nest', 15] }, fx: [{ t: 'auto', id: 'wonen' }] },
     { id: 'voorraadw',cat: 'C', naam: 'Voorraadwacht',          tekst: 'Bouwt vanzelf een Bessentuin bij voedseltekort', k: { hout: 2000, bladeren: 1000 }, eis: { b: ['bessen', 15] }, fx: [{ t: 'auto', id: 'voedsel' }] },
     { id: 'groeiw',   cat: 'C', naam: 'Groeiwachters',          tekst: 'Voert groeifases vanzelf uit zodra ze betaalbaar zijn', k: { hout: 100000, steen: 20000, gereedschap: 3000 }, eis: { u: ['vakman'] }, fx: [{ t: 'auto', id: 'fase' }] },
+    { id: 'langslaap',cat: 'G', naam: 'Lange slaap',            tekst: 'Offline-limiet +2 uur',              k: { hout: 1500, bladeren: 1000, steen: 100 }, eis: { b: ['familie', 1] }, fx: [{ t: 'offline', uren: 2 }] },
+    { id: 'nachtwak', cat: 'G', naam: 'Nachtwakers',            tekst: 'Offline-opbrengst +10%',             k: { hout: 3000, bladeren: 1500 }, eis: { tot: 50 }, fx: [{ t: 'offlineEff', plus: .1 }] },
+    { id: 'stilwerk', cat: 'G', naam: 'Stille werkplaatsen',    tekst: 'Offline-opbrengst nog eens +10%',    k: { hout: 40000, steen: 8000, gereedschap: 500 }, eis: { u: ['nachtwak'], d: 'Frikto' }, fx: [{ t: 'offlineEff', plus: .1 }] },
+    { id: 'wachters', cat: 'G', naam: 'Wakkere wachters',       tekst: 'Offline-limiet +4 uur',              k: { hout: 60000, bladeren: 30000, steen: 10000 }, eis: { u: ['langslaap'], tot: 150 }, fx: [{ t: 'offline', uren: 4 }] },
+    { id: 'nachtmand',cat: 'G', naam: 'Nachtmanden',            tekst: 'Verzamelmanden blijven tikken terwijl je weg bent', k: { hout: 25000, lianen: 8000 }, eis: { u: ['manden'] }, fx: [{ t: 'nachtmanden' }] },
     { id: 'handsch',  cat: 'F', naam: 'Stevige handschoenen',   tekst: 'Elke tik ×1,5',                    k: { hout: 200 }, eis: { tik: 25 }, fx: [{ t: 'tikX', x: 1.5 }] },
     { id: 'manden2',  cat: 'F', naam: 'Brede manden',           tekst: 'Een tik geeft ook lianen en voedsel', k: { hout: 1500, bladeren: 500 }, eis: { b: ['liaan', 5] }, fx: [{ t: 'tikRes', res: ['lianen', 'voedsel'] }] },
     { id: 'ritme',    cat: 'F', naam: 'Ritme van het werk',     tekst: 'Tik 10 keer binnen 3 seconden: de tiende tik geeft ×4', k: { bladeren: 3000, lianen: 500 }, eis: { tik: 100 }, fx: [{ t: 'ritme' }] },
