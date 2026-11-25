@@ -208,6 +208,9 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 }
 #toasts{bottom:calc(var(--bar) + 12px)!important;z-index:30}
 .rs[hidden]{display:none!important}
+/* Cijfers even breed, zodat de grondstofbalk niet verspringt als getallen veranderen */
+.rs b,.rs small,.rs em,.rs .tijd,#dag,#bew,#nova{font-variant-numeric:tabular-nums}
+@media(max-width:600px){.rs small{justify-self:end;text-align:right}}
 @media(prefers-reduced-motion:reduce){.lade{transition:none}}
 #dag{color:#cdbf9f;font-size:14px;white-space:nowrap}
 .plaat::after{content:'';position:absolute;inset:0;background:#0b1636;opacity:0;pointer-events:none;transition:opacity 3s}
