@@ -31,6 +31,8 @@ jobs:
         run: npx capacitor-assets generate --android --iconBackgroundColor '#1c1f16' --splashBackgroundColor '#1c1f16'
       - name: Alleen staand scherm
         run: sed -i 's/android:name=".MainActivity"/android:name=".MainActivity" android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+      - name: Vaste sleutel (zodat updates over de oude app heen installeren)
+        run: mkdir -p ~/.android && cp signing/debug.keystore ~/.android/debug.keystore
       - name: APK bouwen
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
       - name: Naam geven

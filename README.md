@@ -43,3 +43,5 @@ Installeren: open die pagina op je Android-telefoon, tik op het .apk-bestand en 
 Een nieuwe versie installeer je op dezelfde manier: je voortgang blijft bewaard.
 
 Zelf bouwen (met Android Studio): `npm install`, `npm run web`, `npx cap add android`, `npx cap open android`.
+
+De app wordt ondertekend met de vaste ontwikkelaarssleutel in `signing/debug.keystore` (wachtwoord `android`). Zo installeert elke nieuwe versie over de vorige heen. Voor de Play Store is een aparte, geheime sleutel nodig.
