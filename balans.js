@@ -1,8 +1,9 @@
 /* Lomari: Idle Village — balanstest. Een computerspeler speelt N dagen met dezelfde motor als het spel.
    Hij is 4× per dag actief (2× 1 uur, 2× een half uur) en koopt steeds wat het snelst terugverdiend is,
-   inclusief de wachttijd tot hij het kan betalen. Hergroei zodra die zijn Nova minstens verdubbelt. */
+   inclusief de wachttijd tot hij het kan betalen (ook runen van groei). Hij koopt knopen in de upgradebomen,
+   doorbreekt Banden boven de 30 en gebruikt vaardigheden zodra ze klaar zijn. Hergroei zodra die zijn Nova minstens verdubbelt. */
 window.BALANS = (() => {
-  const D = window.DATA, E = window.ENGINE, { RES, B } = D;
+  const D = window.DATA, E = window.ENGINE, L = window.LOM, { RES, B } = D;
   const waarde = c => Object.entries(c).reduce((a, [k, v]) => a + RES[k].waarde * v, 0);
 
   function opties(S) {
@@ -14,6 +15,7 @@ window.BALANS = (() => {
     for (const d in D.DISTRICTS) if (!S.open.includes(d)) o.push({ t: 'district', id: d, c: D.DISTRICTS[d].open });
     for (const u of D.U) if (!S.up[u.id] && E.eisOk(S, u.eis)) o.push({ t: 'upgrade', id: u.id, c: E.upKost(S, u) });
     if (E.magieOpen(S)) o.push({ t: 'magie', c: E.magieKost(S) });
+    for (const b of E.BK) if (B[b].p && S.n[b] > 0 && S.fase[b] >= D.runeFase && !S.rune?.[b]) o.push({ t: 'rune', id: b, c: E.runeKost(S, 'groei') });
     return o;
   }
   function pas(S, o, terug) {
@@ -22,6 +24,7 @@ window.BALANS = (() => {
     else if (o.t === 'fase') S.fase[o.id] += d;
     else if (o.t === 'district') { if (terug) S.open.pop(); else S.open.push(o.id); }
     else if (o.t === 'upgrade') S.up[o.id] = !terug;
+    else if (o.t === 'rune') { S.rune = S.rune || {}; if (terug) delete S.rune[o.id]; else S.rune[o.id] = 'groei'; }
     else S.magie += d;
   }
   function winst(S, o, voor) {
@@ -32,7 +35,16 @@ window.BALANS = (() => {
   }
   function beslis(S) {
     for (const id in S.lom) { const l = S.lom[id], d = E.lomDef(id).d; if (!l.d && S.open.includes(d)) E.wijs(S, id, d); }
+    // Lomari-groei: Band doorbreken boven de 30, dan knopen in de upgradeboom (op volgorde, goedkoopste eerst)
+    for (const id in S.lom) while (E.doorbreek(S, id));
+    for (const id in S.lom) for (let i = 0; i < L.BOOM_KOST.length; i++) if (E.boomKan(S, id, i)) E.koopKnoop(S, id, i);
+    // Vaardigheden: een actieve speler drukt ze zodra ze klaar zijn; ultiem alleen met Wortelgloed over
+    for (const id in S.lom) {
+      if (S.r.wortelgloed >= 20 && E.actKan(S, id, true)) E.gebruik(S, id, true);
+      else if (E.actKan(S, id, false)) E.gebruik(S, id, false);
+    }
     while (S.vondsten.length) E.kiesVondst(S, 0, 'buit');
+    if (!S.n.hakplek) return E.koop(S, 'hakplek');           // eerst hout, anders kan hij vastlopen (hij tikt niet)
     const m = E.mods(S), R = E.rates(S, m);
     if (E.bedden(S) < E.banen(S) + 1) for (const b of ['familie', 'nest']) if (S.open.includes(B[b].d) && E.koop(S, b)) return true;
     if (R.prod.voedsel < R.use.voedsel * 1.1 && E.koop(S, 'bessen')) return true;
@@ -59,6 +71,7 @@ window.BALANS = (() => {
     if (o.t === 'fase') return E.groei(S, o.id);
     if (o.t === 'district') return E.openDistrict(S, o.id);
     if (o.t === 'upgrade') return E.koopUpgrade(S, o.id);
+    if (o.t === 'rune') return E.zetRune(S, o.id, 'groei');
     return E.koopMagie(S);
   }
 

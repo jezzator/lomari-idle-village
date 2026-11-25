@@ -18,12 +18,10 @@ Dit is een complete web-app (PWA) zonder build-stap. Zet hem online via https, d
 
 Nieuwe gebouwen, upgrades of Lomari voeg je toe als regel in `data.js` of `lomari.js`.
 
-## Online zetten met Vercel (zoals je agenda-app)
-1. Maak een nieuwe GitHub-repository, bijvoorbeeld `lomari-idle`, en zet alle bestanden uit deze map erin (de map `portret` ook).
-2. Ga naar vercel.com → Add New → Project → kies de repository → Deploy. Geen build-instellingen nodig.
-3. Je krijgt een adres zoals `lomari-idle.vercel.app`.
-
-Of zonder GitHub: sleep deze map naar app.netlify.com/drop.
+## Waar het spel staat
+- **Code:** deze repository, branch `main`. Elke push naar `main` bouwt automatisch een nieuwe Android-app (zie hieronder).
+- **Spelen in de browser:** de versie op claude.ai. Die wordt na elke wijziging met de hand bijgewerkt.
+- Wil je het als web-app op een eigen adres: elke statische host met https werkt (geen build-stap nodig), bijvoorbeeld GitHub Pages op deze repository.
 
 ## Installeren op je telefoon
 - **iPhone (Safari):** open het adres → deelknop → *Zet op beginscherm*.
@@ -33,7 +31,7 @@ Daarna opent het spel vanaf je beginscherm, schermvullend, zonder browserbalk, e
 
 ## Goed om te weten
 - Je voortgang staat in de opslag van die app op je telefoon, los van de versie op claude.ai. Wil je je voortgang meenemen: Instellingen → *Kopieer code* in de ene versie, *Laad geplakte code* in de andere.
-- Bij een nieuwe versie: vervang de bestanden in GitHub en verhoog in `sw.js` het nummer achter `CACHE` (bijv. `lomari-v2b`). De app werkt zich dan bij de volgende keer openen bij.
+- Bij een nieuwe versie: verhoog in `sw.js` het nummer achter `CACHE` (bijv. `lomari-v17`) en push naar `main`. De web-app werkt zich dan bij de volgende keer openen bij.
 
 ## Android-app
 Bij elke push naar `main` bouwt GitHub automatisch een Android-app (zie het tabblad **Actions**).
