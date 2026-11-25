@@ -32,6 +32,8 @@ window.DATA = (() => {
     hergroeiEnergie: 100000,     // Hergroei beschikbaar na zoveel energie (moment dat Veyra verschijnt)
     verzamelSec: .2,            // één tik = 0,2 s productie hout + bladeren (minimaal 1 van elk)
     magieMax: 12,
+    // Bouwtijd (deel B): een upgrade naar fase 2..5 duurt zo lang; één project tegelijk per district. Bouw blijft direct.
+    bouwSec: [60, 600, 3600, 14400], bouwTik: .01, bouwTikMin: 2,
     // Dag en nacht (deel B): één etmaal duurt dagSec seconden, het laatste deel is nacht
     dagSec: 600, nachtDeel: .3, nachtProd: .8, nachtTik: 1.5,
     // Bosgebeurtenissen: elke gebSec een kans; alleen als je speelt, nooit offline

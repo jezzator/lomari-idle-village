@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0;
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0;
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -106,7 +106,8 @@ function hotspots() {
     const n = E.BK.filter(b => B[b].d === d).reduce((a, b) => a + S.n[b], 0);
     return `<button class="spot${open ? '' : ' dicht'}${sel === d ? ' sel' : ''}" data-sel="${d}" style="left:${l}%;top:${t}%;width:${w}%;height:${h}%" aria-label="${d}${open ? `, ${n} gebouwen` : ', gesloten'}">
       <span class="lmk">${E.inDistrict(S, d).map(id => `<img src="portret/${id}.jpg" alt="">`).join('')}</span><span class="tag">${open ? n : 'Gesloten'}</span></button>`;
-  }).join('') + S.geb.filter(g => D.DISTRICTS[g.d]).map((g, i) => { const [l, t, w] = D.DISTRICTS[g.d].vak, j = S.geb.filter((x, y) => y < i && x.d === g.d).length;
+  }).join('') + S.bouw.filter(x => D.DISTRICTS[B[x.b].d]).map(x => { const [l, t, w, hh] = D.DISTRICTS[B[x.b].d].vak;
+    return `<button class="gebt bouwt" data-bouwhelp="${x.b}" style="left:${l + w * .45}%;top:${t + hh - 16}%" aria-label="${B[x.b].naam} wordt geüpgraded: tik om te helpen bouwen">🔨<span data-bouwover="${x.b}"></span></button>`; }).join('') + S.geb.filter(g => D.DISTRICTS[g.d]).map((g, i) => { const [l, t, w] = D.DISTRICTS[g.d].vak, j = S.geb.filter((x, y) => y < i && x.d === g.d).length;
     return `<button class="gebt" data-help="${g.k}" style="left:${l + w * .45 + j * 9}%;top:${t + 3}%" aria-label="${D.GEB[g.id].naam} in ${g.d}: tik om te helpen">${GEBICO[g.id]}<span data-gebover="${g.k}"></span></button>`; }).join('');
 }
 
@@ -168,8 +169,11 @@ function paneelDorp() {
     if (y.p && f < 5) {
       const dr = E.faseDrempel(S, b), naar = `<span class="fz">${gebouwSvg(b, f)}<span>→</span>${gebouwSvg(b, f + 1)}</span>`;
       const effect = n ? `Alle ${n} ${y.naam.toLowerCase()} maken dan ×2: van ${rs(ps, n)} naar ${rs(ps, 2 * n)} per seconde.` : 'De productie van dit gebouw verdubbelt.';
-      fz = E.faseKlaar(S, b)
-        ? `<div class="fase">${naar}<div><b>Upgrade naar fase ${f + 1}: ${D.FASE_NAAM[f]}</b><br>${effect} Het gebouw groeit zichtbaar.</div><span class="kost">${kost(E.faseKost(S, b))}</span><button class="knop klein" data-fase="${b}">Upgrade naar fase ${f + 1}</button></div>`
+      const bz = S.bouw.find(x => x.b === b), bezig = E.bouwBezig(S, y.d);
+      if (bz) fz = `<div class="fase bouwk">${naar}<div><b>Bezig: upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]})</b><br>Klaar over <span data-bouwover="${b}"></span>. Tot dan werkt het gebouw door op fase ${f}. Elke tik haalt er ${duur(Math.max(BAL.bouwTikMin, bz.duur * BAL.bouwTik))} af.</div><div class="bar"><i data-bouwbar="${b}"></i></div><button class="knop klein" data-bouwhelp="${b}">Help bouwen</button></div>`;
+      else if (bezig && n >= dr) fz = `<small class="nb">Upgrade naar fase ${f + 1} kan zodra ${B[bezig.b].naam} klaar is: in ${y.d} wordt maar aan één upgrade tegelijk gebouwd.</small>`;
+      else fz = E.faseKlaar(S, b)
+        ? `<div class="fase">${naar}<div><b>Upgrade naar fase ${f + 1}: ${D.FASE_NAAM[f]}</b><br>${effect} Bouwtijd: ${duur(E.bouwTijd(S, b))}.</div><span class="kost">${kost(E.faseKost(S, b))}</span><button class="knop klein" data-fase="${b}">Upgrade naar fase ${f + 1}</button></div>`
         : `<div class="bar" title="Naar groeifase ${f + 1}"><i style="width:${Math.min(100, n / dr * 100)}%"></i></div><small class="nb">Upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]}, productie ×2) kan bij ${dr} stuks. Je hebt er ${n}, nog ${dr - n} bouwen.</small>`;
     } else if (y.p) fz = '<small class="nb">Hoogste fase bereikt: Meesterwerk.</small>';
     const ups = D.U.filter(u => u.fx.some(e => (e.t === 'prod' && (y.p?.[e.res] || e.d === d)) || (e.t === 'bed' && e.b === b) || (e.t === 'brug' && y.brug) || (e.t === 'opslag' && y.o)));
@@ -314,7 +318,7 @@ function paneelInstel() {
 function maakSig() {
   return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
-    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0)).join(), S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S)]);
+    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0)).join(), S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join()]);
 }
 function render() {
   sig = maakSig();
@@ -344,6 +348,8 @@ function ververs() {
   $$('[data-open]').forEach(el => { const c = D.DISTRICTS[el.dataset.open].open, p = E.past(S, c, m); el.disabled = !p || !E.kan(S, c); el.textContent = p ? `Open ${el.dataset.open}` : 'Opslag te klein: bouw eerst meer opslag'; });
   $$('.kc').forEach(el => el.classList.toggle('mis', S.r[el.dataset.r] < +el.dataset.v - 1e-9));
   $$('[data-reis]').forEach(el => { const l = S.lom[el.dataset.reis]; if (l) el.textContent = duur(l.reis); });
+  $$('[data-bouwover]').forEach(el => { const x = S.bouw.find(x => x.b === el.dataset.bouwover); if (x) el.textContent = duur(x.over); });
+  $$('[data-bouwbar]').forEach(el => { const x = S.bouw.find(x => x.b === el.dataset.bouwbar); if (x) el.style.width = (100 - x.over / x.duur * 100) + '%'; });
   $$('[data-gebover]').forEach(el => { const g = S.geb.find(g => g.k === +el.dataset.gebover); if (g) { const t = Math.max(0, Math.ceil(g.over)); el.textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; } });
   const di = E.dagInfo(S), dg = $('#dag');
   dg.textContent = di.nacht ? `🌙 Nacht · tikken ×${String(BAL.nachtTik).replace('.', ',')} · dag over ${kort(di.rest)}` : `☀ Dag · nacht over ${kort(di.rest)}`;
@@ -431,7 +437,9 @@ function helpGeb(k) {
   const r = E.help(S, k); if (!r) return;
   if (r.klaar) { toast(r.g.tev ? `${r.g.d} is weer tot rust gekomen` : `${B[r.g.b].naam} werkt weer`); render(); } else ververs();
 }
-$('#spots').onclick = e => { const h = e.target.closest('[data-help]'); if (h) return helpGeb(+h.dataset.help); const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
+function helpBouw(b) { if (E.helpBouw(S, b)) { meldBouw(); ververs(); } }
+function meldBouw() { if (!S.bouwKlaar?.length) return; for (const b of S.bouwKlaar) toast(`${B[b].naam} is klaar: fase ${S.fase[b]}, productie ×2`); faseMoment = S.bouwKlaar.at(-1); S.bouwKlaar = []; render(); }
+$('#spots').onclick = e => { const bh = e.target.closest('[data-bouwhelp]'); if (bh) return helpBouw(bh.dataset.bouwhelp); const h = e.target.closest('[data-help]'); if (h) return helpGeb(+h.dataset.help); const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
 let tikTijden = [];
 $('#verzamel').onclick = () => {
   const nu = performance.now(); if (nu - (tikTijden.at(-1) || 0) < 200) return;   // max 5 tikken per seconde
@@ -443,13 +451,14 @@ $('#verzamel').onclick = () => {
 };
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
-  if (d.help) helpGeb(+d.help);
+  if (d.bouwhelp) helpBouw(d.bouwhelp);
+  else if (d.help) helpGeb(+d.help);
   else if (d.ga) naarDistrict(d.ga);
   else if (d.tabGa) { tab = d.tabGa; render(); }
   else if (b.id === 'gidsuit') { S.instel.gidsUit = true; bewaar(); render(); }
   else if (d.modus) { modus = d.modus === 'max' ? 'max' : +d.modus; render(); }
   else if (d.buy) { const n = modus === 'max' ? Math.max(1, E.maxN(S, d.buy)) : modus; if (E.koop(S, d.buy, n)) { flits = d.buy; after(); } }
-  else if (d.fase) { if (E.groei(S, d.fase)) { flits = d.fase; faseMoment = d.fase; toast(`${B[d.fase].naam} is geüpgraded naar fase ${S.fase[d.fase]}: productie ×2`); after(); } }
+  else if (d.fase) { if (E.groei(S, d.fase)) { flits = d.fase; const x = S.bouw.find(x => x.b === d.fase); toast(x ? `Upgrade naar fase ${S.fase[d.fase] + 1} gestart: ${B[d.fase].naam} is klaar over ${duur(x.duur)}` : `${B[d.fase].naam} is geüpgraded naar fase ${S.fase[d.fase]}: productie ×2`); if (!x) faseMoment = d.fase; after(); } }
   else if (d.open) { if (E.openDistrict(S, d.open)) { toast(`${d.open} is open`); after(); } }
   else if (d.up) { if (E.koopUpgrade(S, d.up)) after(); }
   else if (d.magie) { if (E.koopMagie(S)) after(); }
@@ -562,7 +571,7 @@ let vorige = performance.now(), sinds = 0, achT = 0, verborgen = false;
 setInterval(() => {
   if (verborgen) return;
   const nu = performance.now(), dt = Math.min(5, (nu - vorige) / 1000); vorige = nu;
-  E.tick(S, dt); lomEv(E.lomTick(S, dt)); wereldEv(E.wereld(S, dt)); const auto = E.automatiseer(S, dt);
+  E.tick(S, dt); meldBouw(); lomEv(E.lomTick(S, dt)); wereldEv(E.wereld(S, dt)); const auto = E.automatiseer(S, dt);
   sinds += dt; achT += dt;
   if (achT > 1) { achT = 0; prest(E.checkAch(S)); }
   if (sinds > 10) { sinds = 0; bewaar(); }

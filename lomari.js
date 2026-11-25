@@ -6,7 +6,7 @@ window.LOM = (() => {
     { id: 'melo',   naam: 'Melo',   pers: 'Nieuwsgierig en vriendelijk', gave: 'Kan verborgen doorgangen en geheime plekken aanvoelen.', spec: 'Ontdekking', d: 'Dorukha',
       eis: { start: true }, pasTekst: L => `Elke 10 minuten ${pct(.04 + .005 * L)} kans op een verborgen plek`, pas: L => [{ t: 'vondst', plus: .04 + .005 * L }] },
     { id: 'tiku',   naam: 'Tiku',   pers: 'Speels en energiek', gave: 'Kan korte tijd uitzonderlijk snel bewegen.', spec: 'Snelheid', d: 'Takelom',
-      eis: { start: true }, pasTekst: L => `Verzamelen +100% (bouwtijd −${Math.min(30, L)}% volgt in deel B)`, pas: L => [{ t: 'verzamel', x: 2 }] },
+      eis: { start: true }, pasTekst: L => `Verzamelen +100% · bouwtijd −${Math.min(30, L)}%`, pas: L => [{ t: 'verzamel', x: 2 }, { t: 'bouwX', x: 1 - Math.min(.3, .01 * L) }] },
     { id: 'beki',   naam: 'Beki',   pers: 'Vrolijk en sociaal', gave: 'Kan planten helpen herstellen en groeien.', spec: 'Groei', d: 'Lomavii',
       eis: { start: true }, pasTekst: L => `Bladeren, lianen en voedsel +${n1(Math.min(45, 1.5 * L))}%`, pas: L => ['bladeren', 'lianen', 'voedsel'].map(res => ({ t: 'prod', res, x: 1 + Math.min(.45, .015 * L) })) },
     { id: 'koro',   naam: 'Koro',   pers: 'Aards en betrouwbaar', gave: 'Kan natuurlijke materialen tijdelijk versterken.', spec: 'Versterking', d: 'Takelom', overal: true,
@@ -49,7 +49,7 @@ window.LOM = (() => {
   const V = [
     { id: 'diepe',   naam: 'Diepe stilte',     leden: ['melo', 'varo', 'yomi'], tekst: 'Dubbele vondstkans', fx: [{ t: 'vondstX', x: 2 }] },
     { id: 'openw',   naam: 'Open wegen',       leden: ['melo', 'kavo'], tekst: 'Ontdekte gebieden direct verbonden', b: true },
-    { id: 'snel',    naam: 'Snel en sterk',    leden: ['tiku', 'brakka'], tekst: 'Bouwtijd in Takelom −15%', b: true },
+    { id: 'snel',    naam: 'Snel en sterk',    leden: ['tiku', 'brakka'], tekst: 'Bouwtijd in Takelom −15%', fx: [{ t: 'bouwD', d: 'Takelom', x: .85 }] },
     { id: 'lichtl',  naam: 'Lichtloop',        leden: ['tiku', 'piko'], tekst: 'Lichtbollen blijven twee keer zo lang en geven +25%', fx: [{ t: 'lichtX', duur: 2, x: 1.25 }] },
     { id: 'doorst',  naam: 'Doorstroom',       leden: ['tiku', 'kavo'], tekst: 'Reistijd tussen districten −50%', fx: [{ t: 'reis', x: .5 }] },
     { id: 'groen',   naam: 'Groen herstel',    leden: ['beki', 'liri'], tekst: 'Plantgebouwen zonder onderhoud: plagen leggen ze niet meer stil', fx: [{ t: 'geenGeb', id: 'plaag' }] },
