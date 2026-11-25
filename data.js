@@ -54,7 +54,7 @@ window.DATA = (() => {
     instorting: { naam: 'Instorting',    doel: ['groeve', 'tunnel', 'kristgrot'], tekst: 'Een gang stort in' },
     onweer:     { naam: 'Onweersnacht',  tev: true, nacht: true, tekst: 'Donder houdt de bewoners wakker' },
   };
-  const novaFormule = earned => Math.floor(3 * Math.cbrt(earned / 2.5e10));
+  const novaFormule = earned => Math.floor(3 * Math.cbrt(earned / 5e10));
   const magieKost = k => ({ kristal: 40 * 4 ** k, energie: 25 * 4 ** k });
 
   const DISTRICTS = {
