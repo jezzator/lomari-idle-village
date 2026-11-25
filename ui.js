@@ -84,8 +84,23 @@ function gebiedKnoppen() {
   const g = Object.keys(D.GEBIEDEN).filter(d => S.open.includes(d));
   $('#gebieden').innerHTML = g.length ? '<span>Gebieden:</span>' + g.map(d => `<button class="${sel === d ? 'sel' : ''}" data-sel="${d}" style="--dk:${DKLEUR[d]}">${d}${E.inDistrict(S, d).length ? ` · ${E.inDistrict(S, d).map(id => E.lomDef(id).naam).join(', ')}` : ''}</button>`).join('') : '';
 }
+function dorpGebouwen() {
+  let h = '';
+  for (const [d, x] of Object.entries(D.DISTRICTS)) {
+    if (!S.open.includes(d)) continue;
+    const [l, t, w, hh] = x.vak;
+    const lijst = E.BK.filter(b => B[b].d === d && S.n[b] > 0).sort((a, b) => (S.fase[b] - S.fase[a]) || (S.n[b] - S.n[a])).slice(0, 6);
+    lijst.forEach((b, i) => {
+      const rij = i < 3 ? 0 : 1, kol = i % 3, f = S.fase[b];
+      const cx = l + w * (.3 + kol * .2 + rij * .1), cy = t + hh * (rij ? .86 : .64);
+      const size = 6 + f * .8 + Math.min(2, Math.log10(S.n[b] + 1));
+      h += `<span style="left:${cx}%;top:${cy}%;width:${size}%;position:absolute;display:block;transform:translate(-50%,-100%)">${gebouwSvg(b, f).replace('<svg ', '<svg style="width:100%;height:auto;position:static;transform:none" ')}</span>`;
+    });
+  }
+  $('#bouw').innerHTML = h;
+}
 function hotspots() {
-  gebiedKnoppen(); setTimeout(gloed, 0);
+  gebiedKnoppen(); dorpGebouwen(); setTimeout(gloed, 0);
   $('#spots').innerHTML = Object.entries(D.DISTRICTS).map(([d, x]) => {
     const [l, t, w, h] = x.vak, open = S.open.includes(d);
     const n = E.BK.filter(b => B[b].d === d).reduce((a, b) => a + S.n[b], 0);
@@ -283,6 +298,7 @@ function maakSig() {
 function render() {
   sig = maakSig();
   $$('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
+  $('#ladetitel').textContent = tab === 'dorp' ? '' : TITEL[tab];
   hotspots();
   const scroll = $('#paneel').scrollTop;
   $('#paneel').innerHTML = { dorp: paneelDorp, lomari: paneelLomari, upgrades: paneelUpgrades, stam: paneelStam, prest: paneelPrest, instel: paneelInstel }[tab]();
@@ -356,19 +372,43 @@ function uitleg(k) {
   dialoog(RES[k].naam, h, 'Sluiten'); $('#dt').insertAdjacentHTML('afterbegin', ico(k));
 }
 $('#res').onclick = e => { const b = e.target.closest('[data-res]'); if (b) uitleg(b.dataset.res); };
-$('#db').onclick = e => { const b = e.target.closest('[data-ga]'); if (b) { $('#dlg').classList.remove('open'); sel = b.dataset.ga; tab = 'dorp'; render(); if (innerWidth < 900) $('#paneel').scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+$('#db').onclick = e => { const b = e.target.closest('[data-ga]'); if (b) { $('#dlg').classList.remove('open'); naarDistrict(b.dataset.ga); } };
+
+// ---------- lade ----------
+let ladeOpen = false;
+const TITEL = { dorp: 'Dorp', lomari: 'Lomari', upgrades: 'Upgrades', stam: 'Sterrenstam', prest: 'Prestaties', instel: 'Instellingen' };
+function lade(open) {
+  ladeOpen = open; $('#lade').classList.toggle('open', open); document.body.classList.toggle('lade-open', open);
+  $('#ladetitel').textContent = tab === 'dorp' ? '' : TITEL[tab];
+  if (open) $('#paneel').scrollTop = 0;
+}
+function maten() {
+  document.documentElement.style.setProperty('--kop', $('.top').offsetHeight + 'px');
+  document.documentElement.style.setProperty('--bar', $('#tabs').offsetHeight + 'px');
+  const w = $('#plaatwrap');
+  if (innerWidth < 900) w.style.height = Math.max(220, innerHeight - $('.top').offsetHeight - $('#tabs').offsetHeight - $('.dorpinfo').offsetHeight - 22) + 'px';
+  else w.style.height = '';
+}
+addEventListener('resize', maten); new ResizeObserver(maten).observe(document.querySelector('.top'));
+$('#dicht').onclick = () => lade(false);
+addEventListener('keydown', e => { if (e.key === 'Escape' && ladeOpen && !$('#dlg').classList.contains('open')) lade(false); });
+function naarDistrict(d) {
+  sel = d; tab = 'dorp'; render(); lade(true);
+  const w = $('#plaatwrap'), v = D.DISTRICTS[d]?.vak;
+  if (v && w.scrollWidth > w.clientWidth) w.scrollTo({ left: (v[0] + v[2] / 2) / 100 * w.scrollWidth - w.clientWidth / 2, behavior: stil ? 'auto' : 'smooth' });
+}
 
 // ---------- invoer ----------
-$('#tabs').onclick = e => { const b = e.target.closest('button'); if (b) { tab = b.dataset.tab; render(); if (innerWidth < 900) $('#paneel').scrollIntoView({ block: 'start' }); } };
-$('#gebieden').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) { sel = b.dataset.sel; tab = 'dorp'; render(); if (innerWidth < 900) $('#paneel').scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
-$('#spots').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) { sel = b.dataset.sel; tab = 'dorp'; render(); if (innerWidth < 900) $('#paneel').scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+$('#tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; if (ladeOpen && tab === b.dataset.tab) return lade(false); tab = b.dataset.tab; render(); lade(true); };
+$('#gebieden').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
+$('#spots').onclick = e => { const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
 $('#verzamel').onclick = () => {
   S.tikken = (S.tikken || 0) + 1; const uit = E.verzamel(S), f = document.createElement('span'); f.className = 'zweef';
   f.textContent = `+${fmt(uit.hout)} hout · +${fmt(uit.bladeren)} bladeren`; $('#verzamel').after(f); setTimeout(() => f.remove(), 900); ververs();
 };
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
-  if (d.ga) { sel = d.ga; tab = 'dorp'; render(); }
+  if (d.ga) naarDistrict(d.ga);
   else if (d.tabGa) { tab = d.tabGa; render(); }
   else if (b.id === 'gidsuit') { S.instel.gidsUit = true; bewaar(); render(); }
   else if (d.modus) { modus = d.modus === 'max' ? 'max' : +d.modus; render(); }
@@ -487,5 +527,6 @@ setInterval(() => {
 }, 250);
 addEventListener('pagehide', bewaar);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { verborgen = true; bewaar(); } else { verborgen = false; const weg = (Date.now() - S.t) / 1000; if (weg > 60) { const o = E.offline(S, weg); toast(`Terug na ${duur(o.sec)}: het dorp heeft ${duur(o.eff)} doorgewerkt`); } vorige = performance.now(); } });
-render();
+render(); maten();
+if (!S.instel.gidsUit && GIDS.some(g => !g.klaar())) lade(true);
 }
