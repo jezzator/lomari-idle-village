@@ -1,0 +1,17 @@
+{
+  "name": "lomari-idle-village",
+  "version": "0.4.0",
+  "private": true,
+  "scripts": {
+    "web": "node tools/kopieer-web.mjs",
+    "android": "npm run web && npx cap sync android"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.0",
+    "@capacitor/assets": "3.0.5"
+  },
+  "dependencies": {
+    "@capacitor/core": "6.2.0",
+    "@capacitor/android": "6.2.0"
+  }
+}

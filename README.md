@@ -34,3 +34,12 @@ Daarna opent het spel vanaf je beginscherm, schermvullend, zonder browserbalk, e
 ## Goed om te weten
 - Je voortgang staat in de opslag van die app op je telefoon, los van de versie op claude.ai. Wil je je voortgang meenemen: Instellingen → *Kopieer code* in de ene versie, *Laad geplakte code* in de andere.
 - Bij een nieuwe versie: vervang de bestanden in GitHub en verhoog in `sw.js` het nummer achter `CACHE` (bijv. `lomari-v2b`). De app werkt zich dan bij de volgende keer openen bij.
+
+## Android-app
+Bij elke push naar `main` bouwt GitHub automatisch een Android-app (zie het tabblad **Actions**).
+De nieuwste staat onder **Releases → Latest** als `Lomari-<nummer>.apk`.
+
+Installeren: open die pagina op je Android-telefoon, tik op het .apk-bestand en sta *installeren uit onbekende bronnen* toe voor je browser.
+Een nieuwe versie installeer je op dezelfde manier: je voortgang blijft bewaard.
+
+Zelf bouwen (met Android Studio): `npm install`, `npm run web`, `npx cap add android`, `npx cap open android`.
