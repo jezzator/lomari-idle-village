@@ -304,13 +304,18 @@ function paneelLomari() {
   }).join('');
   return h;
 }
+// Waarde van deze ronde en wanneer de volgende Nova komt (Nova = 3 × ∛(waarde / 50 miljard), daarna bonussen)
+function novaRegel() {
+  const basis = D.novaFormule(S.earned), x = E.mods(S).novaX;
+  return `Waarde deze ronde: <b>${fmt(S.earned)}</b>. Volgende Nova bij ${fmt(D.novaWaarde(basis + 1))}.` + (x > 1.0001 ? ` Bonus op Nova: +${Math.round((x - 1) * 100)}%.` : '');
+}
 function paneelStam() {
   const vrij = S.nova - S.novaUit, wacht = E.novaWacht(S), klaar = E.hergroeiKlaar(S);
   let h = `<div class="kaart hg"><h2>Hergroei</h2>
     <p>Begin het dorp opnieuw. Je houdt je Nova, de Sterrenstam en je prestaties. Gebouwen, voorraad, upgrades en de districten na de eerste drie beginnen opnieuw.</p>
     ${klaar ? `<p class="groot">Hergroei levert nu <b id="wacht">${wacht}</b> Nova op</p>${E.mods(S).veyra ? `<p>Veyra: deze ronde ${(wacht / Math.max(.1, (Date.now() - S.rondeStart) / 3600)).toFixed(2).replace('.', ',')} Nova per uur. Zolang dit stijgt, loont doorspelen.</p>` : ''}<button class="knop" id="hergroei">Hergroei</button>`
       : `<p>Beschikbaar na ${fmt(BAL.hergroeiEnergie)} Flohara-energie in deze ronde.</p><div class="bar"><i id="ebar" style="width:${Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100)}%"></i></div><small class="nb" id="etekst">${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}</small>`}
-    </div><h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
+    <p class="nb" id="nwaarde">${novaRegel()}</p></div><h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
   const takken = [...new Set(D.STAR.map(s => s.tak))];
   for (const t of takken) {
     h += `<h3 class="tak">${t}</h3>` + D.STAR.filter(s => s.tak === t).map(s => {
@@ -386,6 +391,7 @@ function ververs() {
   $('#plaatwrap').classList.toggle('nacht', di.nacht);
   const bol = $('#bol'); if (S.bol) { bol.hidden = false; bol.style.left = S.bol.x + '%'; bol.style.top = S.bol.y + '%'; } else bol.hidden = true;
   const w = $('#wacht'); if (w) w.textContent = E.novaWacht(S);
+  const nw = $('#nwaarde'); if (nw) nw.innerHTML = novaRegel();
   const eb = $('#ebar'); if (eb) { eb.style.width = Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100) + '%'; $('#etekst').textContent = `${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}`; }
 }
 

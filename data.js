@@ -54,7 +54,8 @@ window.DATA = (() => {
     instorting: { naam: 'Instorting',    doel: ['groeve', 'tunnel', 'kristgrot'], tekst: 'Een gang stort in' },
     onweer:     { naam: 'Onweersnacht',  tev: true, nacht: true, tekst: 'Donder houdt de bewoners wakker' },
   };
-  const novaFormule = earned => Math.floor(3 * Math.cbrt(earned / 5e10));
+  const novaDeler = 5e10, novaFormule = earned => Math.floor(3 * Math.cbrt(earned / novaDeler));
+  const novaWaarde = n => (n / 3) ** 3 * novaDeler;   // waarde die nodig is voor n Nova (zonder bonussen)
   const magieKost = k => ({ kristal: 40 * 4 ** k, energie: 25 * 4 ** k });
 
   const DISTRICTS = {
@@ -199,5 +200,5 @@ window.DATA = (() => {
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
   ];
 
-  return { RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();
