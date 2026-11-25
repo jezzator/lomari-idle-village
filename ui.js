@@ -309,13 +309,24 @@ function novaRegel() {
   const basis = D.novaFormule(S.earned), x = E.mods(S).novaX;
   return `Waarde deze ronde: <b>${fmt(S.earned)}</b>. Volgende Nova bij ${fmt(D.novaWaarde(basis + 1))}.` + (x > 1.0001 ? ` Bonus op Nova: +${Math.round((x - 1) * 100)}%.` : '');
 }
+// Uitleg van de berekening, met de waarden uit data.js
+function novaUitleg() {
+  const rijen = Object.values(D.RES).map(r => `<tr><td>${r.naam}</td><td>${String(r.waarde).replace('.', ',')}</td></tr>`).join('');
+  return `<details class="boom"><summary>Hoe wordt Nova berekend?</summary>
+    <p><b>Waarde</b> = alles wat je dorp deze ronde maakt × de waarde per grondstof:</p>
+    <table><tr><th>Grondstof</th><th>Waarde</th></tr>${rijen}</table>
+    <ul class="eisl"><li>Productie van gebouwen telt bruto: verbruik gaat er niet af, en ook bij volle opslag telt het mee.</li>
+    <li>Offline telt mee met je offline-percentage.</li><li>Tikken op Verzamelen telt alleen wat nog in je opslag past.</li>
+    <li>Lichtbollen en verborgen plekken tellen niet mee.</li><li>Uitgeven verlaagt de waarde niet; alleen een Hergroei zet hem op 0.</li></ul>
+    <p><b>Nova</b> = 3 × ∛(waarde / ${fmt(D.novaWaarde(3))}), naar beneden afgerond, daarna × je Nova-bonus en weer naar beneden afgerond. Twee keer zoveel Nova kost acht keer zoveel waarde.</p></details>`;
+}
 function paneelStam() {
   const vrij = S.nova - S.novaUit, wacht = E.novaWacht(S), klaar = E.hergroeiKlaar(S);
   let h = `<div class="kaart hg"><h2>Hergroei</h2>
     <p>Begin het dorp opnieuw. Je houdt je Nova, de Sterrenstam en je prestaties. Gebouwen, voorraad, upgrades en de districten na de eerste drie beginnen opnieuw.</p>
     ${klaar ? `<p class="groot">Hergroei levert nu <b id="wacht">${wacht}</b> Nova op</p>${E.mods(S).veyra ? `<p>Veyra: deze ronde ${(wacht / Math.max(.1, (Date.now() - S.rondeStart) / 3600)).toFixed(2).replace('.', ',')} Nova per uur. Zolang dit stijgt, loont doorspelen.</p>` : ''}<button class="knop" id="hergroei">Hergroei</button>`
       : `<p>Beschikbaar na ${fmt(BAL.hergroeiEnergie)} Flohara-energie in deze ronde.</p><div class="bar"><i id="ebar" style="width:${Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100)}%"></i></div><small class="nb" id="etekst">${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}</small>`}
-    <p class="nb" id="nwaarde">${novaRegel()}</p></div><h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
+    <p class="nb" id="nwaarde">${novaRegel()}</p>${novaUitleg()}</div><h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
   const takken = [...new Set(D.STAR.map(s => s.tak))];
   for (const t of takken) {
     h += `<h3 class="tak">${t}</h3>` + D.STAR.filter(s => s.tak === t).map(s => {
