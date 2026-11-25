@@ -52,6 +52,9 @@ main{padding-bottom:max(40px,env(safe-area-inset-bottom))!important;max-width:14
 #hon{color:#ff8f7a;font-weight:700;font-size:14px}
 #verzamel{min-height:48px;padding:0 22px;border-radius:24px;border:0;background:var(--goud);color:var(--inkt);font-weight:700;font-size:17px;cursor:pointer}
 #verzamel:active{transform:scale(.97)}
+#gaven{min-height:42px;padding:0 14px;border-radius:21px;border:1px solid var(--goud);background:transparent;color:var(--goud);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;margin-left:auto;flex:none}
+#gaven.aan{background:#3a4a26;border-color:#9bd06a;color:#d9f2b8;box-shadow:0 0 12px #9bd06a55}
+.gv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--lijn)}.gv h3{margin:0 0 2px;font-size:15px}.gv p{margin:0;font-size:13px}
 .zweef .ri{width:14px;height:14px;margin:0 1px 0 4px}.zweef.ritme{color:#c9a6ea;font-size:16px}
 .zweef{display:flex;align-items:center;white-space:nowrap;position:absolute;right:0;top:-6px;color:var(--goud);font-weight:700;font-size:14px;pointer-events:none;animation:op .9s ease-out forwards}
 @keyframes op{to{transform:translateY(-26px);opacity:0}}
@@ -192,7 +195,8 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
  .plaatwrap::-webkit-scrollbar{display:none}
  .plaat{height:100%;width:auto;aspect-ratio:1536/1024;border-radius:0;flex:none}
  .dorpinfo{padding:0 10px;max-width:none;flex-wrap:nowrap;gap:8px;margin-top:6px}
- #bew{font-size:12px;line-height:1.3}
+ #bew{font-size:12px;line-height:1.3;min-width:0;flex:1 1 0}
+ #dag{white-space:normal;flex:0 1 auto;min-width:0;line-height:1.3}
  #verzamel{min-height:42px;padding:0 16px;font-size:15px;flex:none}
  #gebieden{position:absolute;left:10px;top:-52px;flex:none}
  .lade{left:0;right:0;bottom:var(--bar);height:min(74svh,calc(100svh - var(--kop) - var(--bar) + 40px));border-radius:16px 16px 0 0;transform:translateY(105%);box-shadow:0 -8px 30px #000a}
@@ -226,7 +230,7 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 .knoop.heb b{color:#3d5a2c}.knoop.slot{opacity:.6}.knoop.sleutel b{color:#7b4f9e}
 .act{margin-top:8px;border-top:1px solid #d9c59c;padding-top:6px;font-size:14px}.act p{margin:2px 0}.act .knop.ult{background:#7b4f9e}.act .knop.ult:disabled{background:#cbb991}
 .runen{margin-top:6px;font-size:14px}.runen .upl{display:block;width:100%;margin-top:4px}.runen .upl .kost{display:inline-flex;margin-left:4px}.runen .upl:disabled{opacity:.55;cursor:default}
-@media(max-width:520px){.gebt{font-size:11px;padding:2px 6px 2px 4px}#dag{font-size:12px}}
+@media(max-width:520px){.gebt{font-size:11px;padding:2px 6px 2px 4px}#dag{font-size:12px}#gaven{padding:0 10px;font-size:13px;margin-left:0}}
 @media(prefers-reduced-motion:reduce){.gebt{animation:none}.plaat::after{transition:none}}
 </style></head><body>
 <header class="top">
@@ -236,7 +240,7 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 <main id="hoofd">
   <section class="dorp">
     <div class="plaatwrap" id="plaatwrap"><div class="plaat"><img src="dorp.jpg" alt="Het Lomari-dorp in de oude boom, met de zeven districten"><canvas id="vlieg" aria-hidden="true"></canvas><div id="bouw" aria-hidden="true"></div><div id="spots"></div><div id="fx" aria-hidden="true"></div><button id="bol" hidden aria-label="Lichtbol: tik om te vangen"></button></div></div>
-    <div class="dorpinfo"><div id="gebieden"></div><span id="dag"></span><span id="bew"></span><span id="hon" hidden>Voedseltekort: productie gehalveerd</span><button id="verzamel">Verzamelen</button></div>
+    <div class="dorpinfo"><div id="gebieden"></div><span id="dag"></span><span id="bew"></span><span id="hon" hidden>Voedseltekort: productie gehalveerd</span><button id="gaven" aria-label="Gaven van het woud">Gaven</button><button id="verzamel">Verzamelen</button></div>
   </section>
   <aside class="lade" id="lade" aria-label="Paneel">
     <div class="ladekop"><span id="ladetitel"></span><button id="dicht" aria-label="Paneel sluiten">×</button></div>

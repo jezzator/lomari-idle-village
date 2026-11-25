@@ -39,6 +39,14 @@ window.DATA = (() => {
     // Bosgebeurtenissen: elke gebSec een kans; alleen als je speelt, nooit offline
     gebSec: 240, gebKans: .5, gebVanaf: 15, gebMax: 2, gebDuur: 180, gebTev: 15, helpSec: 5,
   };
+  // Gaven van het woud (boosters): je spaart ze op en zet ze zelf in. Eén tegelijk; dezelfde opnieuw verlengt.
+  // De tijd loopt niet door als je weg bent, en offline tellen ze niet mee. Blijven bij Hergroei.
+  const GAVE = {
+    groei: { naam: 'Groeigave', x: 2, sec: 900,  tekst: 'Een druppel sap uit de oude boom. Alle productie ×2, 15 minuten.' },
+    bloei: { naam: 'Bloeigave', x: 3, sec: 600,  tekst: 'Een bloesem die maar één nacht openstaat. Alle productie ×3, 10 minuten.' },
+    woud:  { naam: 'Woudgave',  x: 2, sec: 3600, tekst: 'Een zaad uit het diepe woud. Alle productie ×2, 1 uur.' },
+  };
+  const GAVE_MAX = 5, GAVE_START = { groei: 2 }, GAVE_GEBKANS = .25;
   // Runen (deel B): één per gebouw vanaf fase 3, gemaakt van Kristallen. De prijs stijgt met elke rune die je al hebt. Verdwijnen bij Hergroei.
   const RUNE = {
     groei: { naam: 'Rune van groei', tekst: 'Dit gebouw maakt +50%', kost: { kristal: 40, steen: 400 } },
@@ -200,5 +208,5 @@ window.DATA = (() => {
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
   ];
 
-  return { RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

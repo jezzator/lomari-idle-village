@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0;
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = [];
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -576,6 +576,28 @@ function wereldEv(ev) {
   }
 }
 function prest(l) { if (l.length) toast(l.length === 1 ? `Prestatie: ${l[0].naam}` : l.length <= 3 ? `${l.length} prestaties: ${l.map(a => a.naam).join(', ')}` : `${l.length} nieuwe prestaties behaald`); }
+// ---------- Gaven van het woud ----------
+function gaveKnop() {
+  const el = $('#gaven'); if (!el) return; const a = S.gaveAan, n = Object.values(S.gave || {}).reduce((x, y) => x + y, 0);
+  const kort = s => s >= 60 ? Math.ceil(s / 60) + ' m' : Math.ceil(s) + ' s';
+  const t = a?.over > 0 ? `×${D.GAVE[a.id].x} · ${kort(a.over)}` : `Gaven ${n}`; el.title = a?.over > 0 ? `${D.GAVE[a.id].naam} loopt nog ${duur(a.over)}` : 'Gaven van het woud';
+  if (el.textContent !== t) el.textContent = t; el.classList.toggle('aan', !!(a?.over > 0));
+  if ($('#dlg').classList.contains('open') && $('#db .gaven')) $('#db .gaven').outerHTML = gaveLijst();
+}
+function gaveLijst() {
+  const a = S.gaveAan;
+  return `<div class="gaven">${a?.over > 0 ? `<p><b>${D.GAVE[a.id].naam} loopt nog ${duur(a.over)}.</b> Alle productie ×${D.GAVE[a.id].x}.</p>` : ''}` + Object.entries(D.GAVE).map(([id, g]) =>
+    `<div class="gv"><div><h3>${g.naam} <span class="nb">${S.gave?.[id] || 0} / ${D.GAVE_MAX}</span></h3><p>${g.tekst}</p></div><button class="knop klein" data-gave="${id}"${E.gaveKan(S, id) ? '' : ' disabled'}>${a?.over > 0 && a.id === id ? 'Verleng' : 'Zet in'}</button></div>`).join('') + '</div>';
+}
+function gaveDialoog() {
+  dialoog('Gaven van het woud', `${gaveLijst()}<p class="nb">Eén gave tegelijk; dezelfde opnieuw inzetten verlengt de tijd. De tijd staat stil terwijl je weg bent. Je krijgt een Groeigave bij elke voltooide fase en elke prestatie, soms een Bloeigave als een bosgebeurtenis voorbij is, en twee Woudgaven bij elke Hergroei.</p>`, 'Sluiten');
+}
+$('#gaven').onclick = gaveDialoog;
+$('#db').addEventListener('click', e => { const b = e.target.closest('[data-gave]'); if (!b) return;
+  const id = b.dataset.gave; if (E.zetGave(S, id)) { toast(`${D.GAVE[id].naam}: alle productie ×${D.GAVE[id].x}`); bewaar(); gaveKnop(); ververs(); } });
+function gaveMeld() { if (!S.gaveNieuw?.length) return; const l = S.gaveNieuw; S.gaveNieuw = [];
+  const tel = {}; l.forEach(id => tel[id] = (tel[id] || 0) + 1);
+  toast('Gave ontvangen: ' + Object.entries(tel).map(([id, n]) => (n > 1 ? n + '× ' : '') + D.GAVE[id].naam).join(', ')); }
 function after() { prest(E.checkAch(S)); bewaar(); render(); }
 
 // ---------- leven op de dorpsplaat: vuurvliegjes, gloed en opstijgende opbrengst ----------
@@ -638,6 +660,7 @@ setInterval(() => {
   E.tick(S, dt); meldBouw(); lomEv(E.lomTick(S, dt)); wereldEv(E.wereld(S, dt)); const auto = E.automatiseer(S, dt);
   sinds += dt; achT += dt;
   if (achT > 1) { achT = 0; prest(E.checkAch(S)); }
+  gaveMeld(); gaveKnop();
   if (sinds > 10) { sinds = 0; bewaar(); }
   if (auto.length && maakSig() !== sig) render(); else ververs();
   opbrengstFx(dt);

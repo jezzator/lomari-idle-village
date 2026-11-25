@@ -15,6 +15,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
+      gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [],
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -172,7 +173,7 @@ window.ENGINE = (() => {
   const achAantal = S => Object.values(S.ach).filter(Boolean).length;
   function globaal(S, m) {
     return (1 + m.brug * S.n.brug) * (S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1) * 1.25 ** S.magie * (1 + BAL.novaPct * S.nova)
-      * (1 + .01 * achAantal(S)) * (1 + m.perDistrict * S.open.length);
+      * (1 + .01 * achAantal(S)) * (1 + m.perDistrict * S.open.length) * (m.geenNacht ? 1 : gaveX(S));
   }
   const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)), 0);
   const banen = S => BK.reduce((a, b) => a + S.n[b] * (B[b].w || 0), 0);
@@ -210,7 +211,7 @@ window.ENGINE = (() => {
 
   function tick(S, dt, rendement = 1, m = mods(S)) {
     const R = rates(S, m, dt);
-    bouwTick(S, dt); actTick(S, dt);
+    bouwTick(S, dt); actTick(S, dt); if (!m.geenNacht) gaveTick(S, dt);
     for (const k of RK) {
       const eff = rendement * (m.geenNacht && k === 'energie' ? m.offlineEnergie : 1);
       const net = (R.prod[k] - R.use[k]) * eff;
@@ -273,10 +274,23 @@ window.ENGINE = (() => {
     if (i === LM.SLEUTEL) S.r.nevelparel -= LM.SLEUTEL_PAREL;
     (S.lom[id].boom = S.lom[id].boom || []).push(i); return true;
   }
+  // ---------- Gaven van het woud ----------
+  const gaveX = S => S.gaveAan?.over > 0 ? D.GAVE[S.gaveAan.id].x : 1;
+  function geefGave(S, id) {
+    S.gave = S.gave || {}; if ((S.gave[id] || 0) >= D.GAVE_MAX) return false;
+    S.gave[id] = (S.gave[id] || 0) + 1; (S.gaveNieuw = S.gaveNieuw || []).push(id); return true;
+  }
+  const gaveKan = (S, id) => (S.gave?.[id] || 0) > 0 && (!(S.gaveAan?.over > 0) || S.gaveAan.id === id);
+  function zetGave(S, id) {
+    if (!gaveKan(S, id)) return false;
+    S.gave[id]--; S.gaveAan = { id, over: (S.gaveAan?.over > 0 ? S.gaveAan.over : 0) + D.GAVE[id].sec }; return true;
+  }
+  function gaveTick(S, dt) { if (S.gaveAan) { S.gaveAan.over -= dt; if (S.gaveAan.over <= 0) S.gaveAan = null; } }
+
   function bouwTick(S, dt) {
     if (!S.bouw?.length) return;
     for (const x of S.bouw) x.over -= dt;
-    for (const x of S.bouw.filter(x => x.over <= 0)) { S.fase[x.b]++; (S.bouwKlaar = S.bouwKlaar || []).push(x.b); }
+    for (const x of S.bouw.filter(x => x.over <= 0)) { S.fase[x.b]++; (S.bouwKlaar = S.bouwKlaar || []).push(x.b); geefGave(S, 'groei'); }
     S.bouw = S.bouw.filter(x => x.over > 0);
   }
   function actTick(S, dt) {
@@ -326,7 +340,7 @@ window.ENGINE = (() => {
     const m = mods(S); if (!faseKlaar(S, b, m)) return false;
     const c = faseKost(S, b, m); if (!kan(S, c)) return false;
     betaal(S, c); const t = bouwTijd(S, b, m); S.bouw = S.bouw || [];
-    if (t <= 0) S.fase[b]++; else S.bouw.push({ b, over: t, duur: t });
+    if (t <= 0) { S.fase[b]++; geefGave(S, 'groei'); } else S.bouw.push({ b, over: t, duur: t });
     return true;
   }
   function openDistrict(S, d) {
@@ -498,7 +512,7 @@ window.ENGINE = (() => {
     S.klok = (S.klok || 0) + dt; S.geb = S.geb || [];
     if (isNacht(S) !== wasNacht) ev.push({ t: isNacht(S) ? 'nacht' : 'dag' });
     for (const g of S.geb) g.over -= dt;
-    for (const g of S.geb.filter(g => g.over <= 0)) ev.push({ t: 'gebKlaar', g });
+    for (const g of S.geb.filter(g => g.over <= 0)) { ev.push({ t: 'gebKlaar', g }); if (Math.random() < D.GAVE_GEBKANS) geefGave(S, 'bloei'); }
     S.geb = S.geb.filter(g => g.over > 0);
     S.gebT = (S.gebT || 0) + dt;
     while (S.gebT >= BAL.gebSec) {
@@ -509,7 +523,7 @@ window.ENGINE = (() => {
   }
   function help(S, k) {   // tikken op een gebeurtenis helpt: elke tik haalt een paar seconden van de duur af
     const g = (S.geb || []).find(g => g.k === k); if (!g) return null;
-    g.over -= BAL.helpSec; if (g.over <= 0) { S.geb = S.geb.filter(x => x !== g); return { klaar: true, g }; }
+    g.over -= BAL.helpSec; if (g.over <= 0) { S.geb = S.geb.filter(x => x !== g); if (Math.random() < D.GAVE_GEBKANS) geefGave(S, 'bloei'); return { klaar: true, g }; }
     return { klaar: false, g };
   }
 
@@ -520,7 +534,7 @@ window.ENGINE = (() => {
   }
   function checkAch(S) {
     const st = stats(S), nieuw = [];
-    for (const a of D.ACH) if (!S.ach[a.id] && a.test(st)) { S.ach[a.id] = true; nieuw.push(a); }
+    for (const a of D.ACH) if (!S.ach[a.id] && a.test(st)) { S.ach[a.id] = true; nieuw.push(a); geefGave(S, 'groei'); }
     return nieuw;
   }
 
@@ -529,7 +543,7 @@ window.ENGINE = (() => {
   const novaWacht = S => hergroeiKlaar(S) ? Math.floor(D.novaFormule(S.earned) * mods(S).novaX) : 0;
   function hergroei(S) {
     const n = novaWacht(S); if (n < 1) return null;
-    return nieuw({ ...S, nova: S.nova + n, runs: S.runs + 1 });
+    const T = nieuw({ ...S, nova: S.nova + n, runs: S.runs + 1 }); for (let i = 0; i < 2; i++) geefGave(T, 'woud'); T.gaveNieuw = []; return T;
   }
   function koopStar(S, id) {
     const s = D.STAR.find(x => x.id === id);
@@ -562,6 +576,7 @@ window.ENGINE = (() => {
 
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k) => cap(S, k, mods(S)), kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
+    gaveX, gaveKan, zetGave, geefGave,
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
