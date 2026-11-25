@@ -28,10 +28,11 @@ function duur(s) {
   s = Math.floor(s); const d = Math.floor(s / 86400), u = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
   return d ? `${d} d ${u} u` : u ? `${u} u ${m} m` : m ? `${m} m ${s % 60} s` : `${s} s`;
 }
-const kost = c => Object.entries(c).map(([k, v]) => `<span class="kc" data-r="${k}" data-v="${v}"><i style="background:${RES[k].kleur}"></i>${fmt(v)} ${RES[k].naam.toLowerCase()}</span>`).join('');
+const ico = k => window.ART ? ART.res(k) : `<i style="background:${RES[k].kleur}"></i>`;
+const kost = c => Object.entries(c).map(([k, v]) => `<span class="kc" data-r="${k}" data-v="${v}">${ico(k)}${fmt(v)} ${RES[k].naam.toLowerCase()}</span>`).join('');
 
 // ---------- state ----------
-let testUit = '', testBezig = false, S, tab = 'dorp', sel = 'Takelom', modus = 1, sig = '', melding = [];
+let flits = null, faseMoment = null, testUit = '', testBezig = false, S, tab = 'dorp', sel = 'Takelom', modus = 1, sig = '', melding = [];
 function laad() {
   try { const x = JSON.parse(localStorage.getItem(SLEUTEL)); if (x && x.v === 1) return herstel(x); } catch (e) {}
   return E.nieuw();
@@ -46,6 +47,7 @@ function bewaar() { S.t = Date.now(); try { localStorage.setItem(SLEUTEL, JSON.s
 
 // ---------- tekeningen ----------
 function gebouwSvg(b, fase) {
+  if (window.ART && ART.heeft(b)) return ART.gebouw(b, fase, !!B[b].o);
   const x = B[b], kl = DKLEUR[x.d];
   if (x.brug) return `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 22q20 18 40 0" fill="none" stroke="#6b4a2a" stroke-width="3"/><path d="M4 22v10M44 22v10M12 28v6M20 31v5M28 31v5M36 28v6" stroke="#8a6a44" stroke-width="2"/><path d="M4 18q20 14 40 0" fill="none" stroke="#c9a46a" stroke-width="1.5"/></svg>`;
   if (x.o) return `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="16" width="32" height="24" rx="3" fill="#7a5532"/><path d="M8 24h32M8 32h32" stroke="#4e3420" stroke-width="2"/><rect x="8" y="12" width="32" height="5" rx="2" fill="${kl}"/></svg>`;
@@ -61,7 +63,7 @@ function gebouwSvg(b, fase) {
 // ---------- weergave ----------
 function balk() {
   const m = E.mods(S), R = E.rates(S, m);
-  if (!$('#res').children.length) $('#res').innerHTML = E.RK.map(k => `<button class="rs" data-res="${k}" aria-label="${RES[k].naam}: waar komt het vandaan?"><span class="rn"><i style="background:${RES[k].kleur}"></i>${RES[k].naam}</span>
+  if (!$('#res').children.length) $('#res').innerHTML = E.RK.map(k => `<button class="rs" data-res="${k}" aria-label="${RES[k].naam}: waar komt het vandaan?"><span class="rn">${ico(k)}${RES[k].naam}</span>
       <b></b><small></small><em></em><span class="vul"><i></i></span><span class="tijd"></span></button>`).join('');
   for (const k of E.RK) {
     const el = $(`[data-res="${k}"]`), c = E.cap(S, k), net = R.prod[k] - R.use[k];
@@ -69,7 +71,7 @@ function balk() {
     el.classList.toggle('vol', S.r[k] >= c * .999); el.classList.toggle('bijna', S.r[k] >= c * .9);
     el.querySelector('.vul i').style.width = Math.min(100, S.r[k] / c * 100) + '%';
     el.querySelector('.tijd').textContent = volTekst(S.r[k], c, net);
-    el.querySelector('b').textContent = fmt(S.r[k]); el.querySelector('small').textContent = '/ ' + fmt(c);
+    el.querySelector('b').textContent = fmt(S.r[k]); el.querySelector('small').textContent = '/ ' + (innerWidth < 600 && c >= 1000 ? (c >= 1e6 ? fmt(c) : (c / 1000).toFixed(1).replace('.', ',') + 'K') : fmt(c));
     const em = el.querySelector('em'); em.textContent = `${net >= 0 ? '+' : ''}${fmtR(net)}/s`; em.className = net < 0 ? 'neg' : '';
   }
   const st = `${fmt(R.bed)} bewoners voor ${fmt(R.job)} werkplekken · bemanning ${Math.round(R.staff * 100)}%`;
@@ -83,7 +85,7 @@ function gebiedKnoppen() {
   $('#gebieden').innerHTML = g.length ? '<span>Gebieden:</span>' + g.map(d => `<button class="${sel === d ? 'sel' : ''}" data-sel="${d}" style="--dk:${DKLEUR[d]}">${d}${E.inDistrict(S, d).length ? ` · ${E.inDistrict(S, d).map(id => E.lomDef(id).naam).join(', ')}` : ''}</button>`).join('') : '';
 }
 function hotspots() {
-  gebiedKnoppen();
+  gebiedKnoppen(); setTimeout(gloed, 0);
   $('#spots').innerHTML = Object.entries(D.DISTRICTS).map(([d, x]) => {
     const [l, t, w, h] = x.vak, open = S.open.includes(d);
     const n = E.BK.filter(b => B[b].d === d).reduce((a, b) => a + S.n[b], 0);
@@ -111,7 +113,7 @@ function gids() {
 }
 function paneelDorp() {
   const d = sel, x = D.DISTRICTS[d] || D.GEBIEDEN[d], open = S.open.includes(d), m = E.mods(S);
-  let h = gids() + `<div class="dkop" style="--dk:${DKLEUR[d]}"><h2>${d}</h2><p>${x.functie}</p></div>`;
+  let h = gids() + `<div class="dkop" style="--dk:${DKLEUR[d]}">${window.ART ? ART.embleem(d, DKLEUR[d]) : ''}<div><h2>${d}</h2><p>${x.functie}</p></div></div>`;
   if (open) {
     const vb = E.verbindingen(S).filter(([a, b]) => a === d || b === d).map(([a, b]) => a === d ? b : a);
     const hier = E.inDistrict(S, d), thuis = LM.L.filter(l => l.d === d && S.lom[l.id]).map(l => l.naam);
@@ -152,7 +154,7 @@ function paneelDorp() {
     const ups = D.U.filter(u => u.fx.some(e => (e.t === 'prod' && (y.p?.[e.res] || e.d === d)) || (e.t === 'bed' && e.b === b) || (e.t === 'brug' && y.brug) || (e.t === 'opslag' && y.o)));
     const upl = ups.length ? `<p class="ups">Upgrades uit de winkel: ${ups.map(u => { const st = S.up[u.id] ? 'heb' : E.eisOk(S, u.eis) ? 'kan' : 'nog';
       return `<button class="upl ${st}" data-tab-ga="upgrades" title="${st === 'heb' ? 'Gekocht' : st === 'kan' ? 'Te koop bij Upgrades' : 'Vereist: ' + esc(E.eisTekst(u.eis))}">${st === 'heb' ? '✓ ' : ''}${u.naam} <span>(${u.tekst})</span></button>`; }).join('')}</p>` : '';
-    h += `<div class="gb"><div class="ico">${gebouwSvg(b, f)}</div><div class="gi">
+    h += `<div class="gb${flits === b ? ' flits' : ''}${faseMoment === b ? ' groei' : ''}" data-gb="${b}"><div class="ico">${gebouwSvg(b, f)}</div><div class="gi">
       <h3>${y.naam} <span class="n">${n}</span>${y.p ? `<span class="fn">fase ${f} van 5: ${D.FASE_NAAM[f - 1]}</span>` : ''}</h3><p>${wat}</p>
       <p class="kost" data-kost="${b}"></p>${fz}${upl}</div>
       <button class="knop" data-buy="${b}"></button></div>`;
@@ -284,7 +286,7 @@ function render() {
   hotspots();
   const scroll = $('#paneel').scrollTop;
   $('#paneel').innerHTML = { dorp: paneelDorp, lomari: paneelLomari, upgrades: paneelUpgrades, stam: paneelStam, prest: paneelPrest, instel: paneelInstel }[tab]();
-  $('#paneel').scrollTop = scroll;
+  $('#paneel').scrollTop = scroll; flits = null; faseMoment = null;
   const beschikbaar = D.U.filter(u => !S.up[u.id] && E.eisOk(S, u.eis) && E.kan(S, E.upKost(S, u))).length + (E.magieOpen(S) && E.kan(S, E.magieKost(S)) ? 1 : 0);
   $('#lmn').textContent = S.vondsten.length || '';
   $('#upn').textContent = beschikbaar ? beschikbaar : '';
@@ -351,7 +353,7 @@ function uitleg(k) {
     <h3>Meer opslag</h3><ul>${opslag.length ? opslag.map(rij).join('') : '<li>Alleen via upgrades zoals Ruime kelders</li>'}</ul>
     ${verbruik.length ? `<h3>Verbruikt door</h3><ul>${verbruik.map(rij).join('')}</ul>` : ''}
     <div class="rij"><button class="knop klein" data-ga="${HERKOMST[k]}">Ga naar ${HERKOMST[k]}</button></div>`;
-  dialoog(RES[k].naam, h, 'Sluiten');
+  dialoog(RES[k].naam, h, 'Sluiten'); $('#dt').insertAdjacentHTML('afterbegin', ico(k));
 }
 $('#res').onclick = e => { const b = e.target.closest('[data-res]'); if (b) uitleg(b.dataset.res); };
 $('#db').onclick = e => { const b = e.target.closest('[data-ga]'); if (b) { $('#dlg').classList.remove('open'); sel = b.dataset.ga; tab = 'dorp'; render(); if (innerWidth < 900) $('#paneel').scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
@@ -370,8 +372,8 @@ $('#paneel').addEventListener('click', e => {
   else if (d.tabGa) { tab = d.tabGa; render(); }
   else if (b.id === 'gidsuit') { S.instel.gidsUit = true; bewaar(); render(); }
   else if (d.modus) { modus = d.modus === 'max' ? 'max' : +d.modus; render(); }
-  else if (d.buy) { const n = modus === 'max' ? Math.max(1, E.maxN(S, d.buy)) : modus; if (E.koop(S, d.buy, n)) after(); }
-  else if (d.fase) { if (E.groei(S, d.fase)) { toast(`${B[d.fase].naam} is geüpgraded naar fase ${S.fase[d.fase]}: productie ×2`); after(); } }
+  else if (d.buy) { const n = modus === 'max' ? Math.max(1, E.maxN(S, d.buy)) : modus; if (E.koop(S, d.buy, n)) { flits = d.buy; after(); } }
+  else if (d.fase) { if (E.groei(S, d.fase)) { flits = d.fase; faseMoment = d.fase; toast(`${B[d.fase].naam} is geüpgraded naar fase ${S.fase[d.fase]}: productie ×2`); after(); } }
   else if (d.open) { if (E.openDistrict(S, d.open)) { toast(`${d.open} is open`); after(); } }
   else if (d.up) { if (E.koopUpgrade(S, d.up)) after(); }
   else if (d.magie) { if (E.koopMagie(S)) after(); }
@@ -419,6 +421,49 @@ function lomEv(ev) {
 function prest(l) { if (l.length) toast(l.length === 1 ? `Prestatie: ${l[0].naam}` : l.length <= 3 ? `${l.length} prestaties: ${l.map(a => a.naam).join(', ')}` : `${l.length} nieuwe prestaties behaald`); }
 function after() { prest(E.checkAch(S)); bewaar(); render(); }
 
+// ---------- leven op de dorpsplaat: vuurvliegjes, gloed en opstijgende opbrengst ----------
+const stil = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MIDDEN = d => { const v = D.DISTRICTS[d].vak; return [v[0] + v[2] / 2, v[1] + v[3] / 2]; };
+function districtOpbrengst(d) {
+  const m = E.mods(S), tot = {};
+  for (const b of E.BK) if (B[b].d === d && S.n[b]) for (const [k, v] of Object.entries(E.perStuk(S, b, m))) tot[k] = (tot[k] || 0) + v * S.n[b];
+  return tot;
+}
+function gloed() {
+  for (const el of $$('.spot')) { const d = el.dataset.sel; const op = S.open.includes(d) && Object.values(districtOpbrengst(d)).some(v => v > 0); el.classList.toggle('leeft', op); }
+}
+let fxT = 0;
+function opbrengstFx(dt) {
+  if (stil || document.hidden) return; fxT += dt; if (fxT < 2.2) return; fxT = 0;
+  const kand = S.open.filter(d => D.DISTRICTS[d]).map(d => [d, districtOpbrengst(d)]).filter(([, t]) => Object.keys(t).length);
+  if (!kand.length) return;
+  const [d, t] = kand[Math.floor(Math.random() * kand.length)];
+  const [k, v] = Object.entries(t).sort((a, b) => b[1] * RES[b[0]].waarde - a[1] * RES[a[0]].waarde)[0];
+  const [x, y] = MIDDEN(d), el = document.createElement('div'); el.className = 'stijg';
+  el.innerHTML = `${ico(k)}+${fmtR(v * 2.2)}`; el.style.left = (x + (Math.random() * 10 - 5)) + '%'; el.style.top = (y + 4) + '%';
+  $('#fx').appendChild(el); setTimeout(() => el.remove(), 2200);
+}
+(function vliegjes() {
+  const c = $('#vlieg'); if (!c || stil) return; const g = c.getContext('2d'); let W = 0, Hh = 0;
+  const pas = () => { const r = c.getBoundingClientRect(); W = c.width = r.width * devicePixelRatio; Hh = c.height = r.height * devicePixelRatio; };
+  new ResizeObserver(pas).observe(c); pas();
+  const P = Array.from({ length: 34 }, () => ({ x: Math.random(), y: Math.random(), vx: (Math.random() - .5) * .0006, vy: (Math.random() - .5) * .0004, f: Math.random() * 6.28, r: .6 + Math.random() * 1.2 }));
+  (function teken() {
+    if (!document.hidden) {
+      g.clearRect(0, 0, W, Hh);
+      for (const p of P) {
+        p.x += p.vx + Math.sin(p.f) * .0003; p.y += p.vy + Math.cos(p.f * .7) * .0002; p.f += .02;
+        if (p.x < 0 || p.x > 1) p.vx *= -1; if (p.y < 0 || p.y > 1) p.vy *= -1;
+        const a = .35 + .35 * Math.sin(p.f * 1.7), x = p.x * W, y = p.y * Hh, r = p.r * devicePixelRatio;
+        const gr = g.createRadialGradient(x, y, 0, x, y, r * 6); gr.addColorStop(0, `rgba(255,226,140,${a})`); gr.addColorStop(1, 'rgba(255,226,140,0)');
+        g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 6, 0, 6.29); g.fill();
+        g.fillStyle = `rgba(255,248,215,${a + .2})`; g.beginPath(); g.arc(x, y, r, 0, 6.29); g.fill();
+      }
+    }
+    requestAnimationFrame(teken);
+  })();
+})();
+
 // ---------- lus ----------
 S = laad();
 {
@@ -438,6 +483,7 @@ setInterval(() => {
   if (achT > 1) { achT = 0; prest(E.checkAch(S)); }
   if (sinds > 10) { sinds = 0; bewaar(); }
   if (auto.length && maakSig() !== sig) render(); else ververs();
+  opbrengstFx(dt);
 }, 250);
 addEventListener('pagehide', bewaar);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { verborgen = true; bewaar(); } else { verborgen = false; const weg = (Date.now() - S.t) / 1000; if (weg > 60) { const o = E.offline(S, weg); toast(`Terug na ${duur(o.sec)}: het dorp heeft ${duur(o.eff)} doorgewerkt`); } vorige = performance.now(); } });
