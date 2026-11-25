@@ -14,7 +14,7 @@ window.ENGINE = (() => {
       rondeStart: Date.now(), verzamelT: 0, instel: prev ? prev.instel : { offlineMelding: true },
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
-      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [],
+      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -56,7 +56,7 @@ window.ENGINE = (() => {
       verzamel: 1, capD: {}, capRes: {}, kostRes: {}, faseHoog: 1, ketenIn: 1, upKost: 1, offlineEff: 0, tev: {}, drukte: 0,
       verbandPlus: 0, verbind: 0, vondst: 0, vondstX: 1, licht: 0, lichtDuur: 1, lichtX: 1, reis: 1, rivier: false, novaX: 1,
       magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10,
-      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {} };
+      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {}, runeKost: 1, openWegen: false, ketenPlant: 1 };
     const zet = (e, s = 1) => {               // s = sterkte (1 of 0,4); vermenigvuldigers schalen als 1 + (x−1)·s
       const sx = x => 1 + (x - 1) * s;
       if (e.t === 'prod') { if (e.res) m.res[e.res] = (m.res[e.res] || 1) * sx(e.x); else m.dist[e.d] = (m.dist[e.d] || 1) * sx(e.x); }
@@ -112,6 +112,9 @@ window.ENGINE = (() => {
       else if (e.t === 'schild') m.schild = true;
       else if (e.t === 'voorhoede') m.voorhoede = true;
       else if (e.t === 'bouwX') m.bouwX *= sx(e.x);
+      else if (e.t === 'runeKost') m.runeKost *= sx(e.x);
+      else if (e.t === 'openWegen') m.openWegen = true;
+      else if (e.t === 'ketenPlant') m.ketenPlant *= sx(e.x);
       else if (e.t === 'bouwD') m.bouwD[e.d] = (m.bouwD[e.d] || 1) * sx(e.x);
     };
     const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...Object.keys(S.star).filter(k => S.star[k])];
@@ -123,6 +126,8 @@ window.ENGINE = (() => {
       const s = def.overal || d === def.d ? 1 : C.buiten;
       for (const e of def.pas(l.band, d)) zet(e, s);
     }
+    // Upgradebomen: gekochte knopen gelden altijd
+    for (const id in S.lom || {}) for (const i of S.lom[id].boom || []) for (const e of LM.BOOM[id][i][2]) zet(e);
     // Gebieden: bonus als hun Lomari er staan
     if (plek(S, 'nira') === 'Valunari') m.dist.Valunari = (m.dist.Valunari || 1) * 2;
     m.kroveliAlles = ['piko', 'kavo'].some(id => plek(S, id) === 'Kroveli');
@@ -156,6 +161,7 @@ window.ENGINE = (() => {
   const tevFactor = (S, d, m) => Math.min(C.tevMax, Math.max(C.tevMin, tevredenheid(S, d, m))) / 100;
   function verbindFactor(S, d, m, lijst) {
     let n = lijst.filter(([a, b]) => a === d || b === d).length;
+    if (m.openWegen) n += D.GEBIEDEN[d] ? echteOpen(S) : S.open.filter(x => D.GEBIEDEN[x]).length;
     if (m.rivier) n = d === 'Lomavii' ? S.open.length - 1 : Math.max(n, lijst.some(([a, b]) => (a === d && b === 'Lomavii') || (b === d && a === 'Lomavii')) ? n : n + (S.open.includes('Lomavii') ? 1 : 0));
     return 1 + n * (C.verbindPct + m.verbind);
   }
@@ -179,7 +185,7 @@ window.ENGINE = (() => {
     const keten = [];
     for (const b of BK) {
       const x = B[b]; if (!x.p || !S.n[b]) continue;
-      const f = S.n[b] * 2 ** (S.fase[b] - 1) * staff * g * BAL.productieSchaal * dF[x.d] * stilF(S, b, m);
+      const f = S.n[b] * 2 ** (S.fase[b] - 1) * staff * g * BAL.productieSchaal * dF[x.d] * stilF(S, b, m) * (S.rune?.[b] === 'groei' ? 1.5 : 1);
       if (x.c) { keten.push([b, f]); continue; }
       for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * (m.res[k] || 1);
     }
@@ -191,7 +197,8 @@ window.ENGINE = (() => {
         ratio = Math.min(ratio, need > 0 ? Math.max(0, have / need) : 1);
       }
       for (const [k, v] of Object.entries(x.c)) use[k] += v * f * m.ketenIn * ratio;
-      for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * ratio * (m.res[k] || 1);
+      const plant = m.ketenPlant !== 1 && Object.keys(x.c).some(k => ['hout', 'bladeren', 'lianen', 'voedsel'].includes(k)) ? m.ketenPlant : 1;
+      for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * ratio * plant * (m.res[k] || 1);
     }
     const honger = S.r.voedsel <= 0 && prod.voedsel < use.voedsel;
     if (honger) RK.forEach(k => { if (k !== 'voedsel') prod[k] *= .5; });
@@ -240,7 +247,29 @@ window.ENGINE = (() => {
   const faseKlaar = (S, b, m = mods(S)) => !!B[b].p && S.fase[b] < 5 && S.n[b] >= faseDrempel(S, b, m) && !bouwBezig(S, B[b].d);
   // Bouwtijd: een upgrade naar een hogere fase is pas klaar na de bouwtijd. Tot dan produceert het gebouw op de oude fase.
   const bouwBezig = (S, d) => (S.bouw || []).find(x => B[x.b].d === d) || null;
-  const bouwTijd = (S, b, m = mods(S)) => Math.round(BAL.bouwSec[S.fase[b] - 1] * m.bouwX * (m.bouwD[B[b].d] || 1));
+  const bouwTijd = (S, b, m = mods(S)) => Math.round(BAL.bouwSec[S.fase[b] - 1] * m.bouwX * (m.bouwD[B[b].d] || 1) * (S.rune?.[b] === 'vlot' ? .5 : 1));
+  // Runen
+  const runeKost = (S, r, m = mods(S)) => { const f = D.runeGroei ** Object.keys(S.rune || {}).length;
+    return Object.fromEntries(Object.entries(D.RUNE[r].kost).map(([k, v]) => [k, v * f * (k === 'kristal' ? m.runeKost : 1)])); };
+  function zetRune(S, b, r) {
+    if (!B[b].p || S.fase[b] < D.runeFase || S.rune?.[b] === r) return false;
+    S.rune = S.rune || {}; const oud = S.rune[b]; delete S.rune[b];
+    const c = runeKost(S, r); if (!kan(S, c)) { if (oud) S.rune[b] = oud; return false; }
+    betaal(S, c); S.rune[b] = r; return true;
+  }
+  // Upgradebomen
+  const punten = (S, id) => { const l = S.lom[id]; return l ? l.band - (l.boom || []).reduce((a, i) => a + LM.BOOM_KOST[i], 0) : 0; };
+  function boomKan(S, id, i) {
+    const l = S.lom[id]; if (!l || (l.boom || []).includes(i)) return false;
+    if (i > 0 && !(l.boom || []).includes(i - 1)) return false;
+    if (punten(S, id) < LM.BOOM_KOST[i]) return false;
+    return i !== LM.SLEUTEL || S.r.nevelparel >= LM.SLEUTEL_PAREL;
+  }
+  function koopKnoop(S, id, i) {
+    if (!boomKan(S, id, i)) return false;
+    if (i === LM.SLEUTEL) S.r.nevelparel -= LM.SLEUTEL_PAREL;
+    (S.lom[id].boom = S.lom[id].boom || []).push(i); return true;
+  }
   function bouwTick(S, dt) {
     if (!S.bouw?.length) return;
     for (const x of S.bouw) x.over -= dt;
@@ -421,7 +450,7 @@ window.ENGINE = (() => {
     for (const [id, x] of Object.entries(D.GEB)) {
       if (m.geenGeb[id] || (x.nacht && !isNacht(S))) continue;
       const doelen = x.tev ? S.open.filter(d => D.DISTRICTS[d] && !S.geb.some(g => g.tev && g.d === d))
-        : x.doel.filter(b => S.n[b] > 0 && S.open.includes(B[b].d) && !S.geb.some(g => g.b === b));
+        : x.doel.filter(b => S.n[b] > 0 && S.open.includes(B[b].d) && !S.geb.some(g => g.b === b) && S.rune?.[b] !== 'rust');
       if (doelen.length) opties.push([id, x, doelen, m.gebKansT[id] || 1]);
     }
     let r = Math.random() * opties.reduce((a, o) => a + o[3], 0);
@@ -495,7 +524,7 @@ window.ENGINE = (() => {
   function perStuk(S, b, m = mods(S)) {
     const x = B[b]; if (!x.p) return {};
     const lijst = verbindingen(S), bed = bedden(S, m), job = banen(S), staff = job ? Math.min(1, bed / job) : 1;
-    const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * nachtF(S, m) * stilF(S, b, m) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
+    const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * nachtF(S, m) * stilF(S, b, m) * (S.rune?.[b] === 'groei' ? 1.5 : 1) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
     return Object.fromEntries(Object.entries(x.p).map(([k, v]) => [k, v * f * (m.res[k] || 1)]));
   }
   function waardeRate(S, m = mods(S)) { const R = rates(S, m); return RK.reduce((a, k) => a + RES[k].waarde * (R.prod[k] - R.use[k]), 0); }
@@ -505,6 +534,7 @@ window.ENGINE = (() => {
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
+    runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };
 })();

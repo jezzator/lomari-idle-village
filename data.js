@@ -39,6 +39,13 @@ window.DATA = (() => {
     // Bosgebeurtenissen: elke gebSec een kans; alleen als je speelt, nooit offline
     gebSec: 240, gebKans: .5, gebVanaf: 15, gebMax: 2, gebDuur: 180, gebTev: 15, helpSec: 5,
   };
+  // Runen (deel B): één per gebouw vanaf fase 3, gemaakt van Kristallen. De prijs stijgt met elke rune die je al hebt. Verdwijnen bij Hergroei.
+  const RUNE = {
+    groei: { naam: 'Rune van groei', tekst: 'Dit gebouw maakt +50%', kost: { kristal: 40, steen: 400 } },
+    rust:  { naam: 'Rune van rust',  tekst: 'Dit gebouw valt nooit stil door een gebeurtenis', kost: { kristal: 25, steen: 200 } },
+    vlot:  { naam: 'Rune van vaart', tekst: 'Upgrades van dit gebouw bouwen twee keer zo snel', kost: { kristal: 25, hout: 2000 } },
+  };
+  const runeGroei = 1.6, runeFase = 3;
   // Bosgebeurtenissen. doel = gebouwen die stil kunnen vallen; tev = tevredenheid in een district daalt; nacht = alleen 's nachts.
   // Een gebeurtenis kost nooit gebouwen of voorraad: hooguit valt een gebouw een paar minuten stil.
   const GEB = {
@@ -192,5 +199,5 @@ window.DATA = (() => {
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
   ];
 
-  return { GEB, RES, BAL, novaFormule, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();
