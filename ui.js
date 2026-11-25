@@ -311,14 +311,24 @@ function novaRegel() {
 }
 // Uitleg van de berekening, met de waarden uit data.js
 function novaUitleg() {
-  const rijen = Object.values(D.RES).map(r => `<tr><td>${r.naam}</td><td>${String(r.waarde).replace('.', ',')}</td></tr>`).join('');
-  return `<details class="boom"><summary>Hoe wordt Nova berekend?</summary>
+  const rijen = Object.keys(D.RES).map(k => `<tr><td>${D.RES[k].naam}</td><td id="nm-${k}"></td><td>× ${String(D.RES[k].waarde).replace('.', ',')}</td><td id="nb-${k}"></td></tr>`).join('');
+  return `<details class="boom" ${window.novaOpen ? "open" : ""} ontoggle="window.novaOpen = this.open"><summary>Hoe wordt Nova berekend?</summary>
     <p><b>Waarde</b> = alles wat je dorp deze ronde maakt × de waarde per grondstof:</p>
-    <table><tr><th>Grondstof</th><th>Waarde</th></tr>${rijen}</table>
+    <table class="novat"><tr><th>Grondstof</th><th>Gemaakt</th><th>Waarde</th><th>Telt mee</th></tr>${rijen}
+    <tr id="nm-ouder-r" hidden><td colspan="3">Van vóór deze uitleg</td><td id="nm-ouder"></td></tr>
+    <tr><th colspan="3">Totaal</th><th id="nm-tot"></th></tr></table>
     <ul class="eisl"><li>Productie van gebouwen telt bruto: verbruik gaat er niet af, en ook bij volle opslag telt het mee.</li>
     <li>Offline telt mee met je offline-percentage.</li><li>Tikken op Verzamelen telt alleen wat nog in je opslag past.</li>
     <li>Lichtbollen en verborgen plekken tellen niet mee.</li><li>Uitgeven verlaagt de waarde niet; alleen een Hergroei zet hem op 0.</li></ul>
     <p><b>Nova</b> = 3 × ∛(waarde / ${fmt(D.novaWaarde(3))}), naar beneden afgerond, daarna × je Nova-bonus en weer naar beneden afgerond. Twee keer zoveel Nova kost acht keer zoveel waarde.</p></details>`;
+}
+// Live: per grondstof hoeveel er deze ronde gemaakt is en wat dat bijdraagt aan de waarde
+function novaLive() {
+  const per = S.earnedPer || {}; let som = 0;
+  for (const k in D.RES) { const n = per[k] || 0, w = n * D.RES[k].waarde; som += w;
+    $('#nm-' + k).textContent = fmt(n); $('#nb-' + k).textContent = fmt(w); }
+  const ouder = S.earned - som; $('#nm-ouder-r').hidden = ouder < 1; $('#nm-ouder').textContent = fmt(ouder);
+  $('#nm-tot').textContent = fmt(S.earned);
 }
 function paneelStam() {
   const vrij = S.nova - S.novaUit, wacht = E.novaWacht(S), klaar = E.hergroeiKlaar(S);
@@ -403,6 +413,7 @@ function ververs() {
   const bol = $('#bol'); if (S.bol) { bol.hidden = false; bol.style.left = S.bol.x + '%'; bol.style.top = S.bol.y + '%'; } else bol.hidden = true;
   const w = $('#wacht'); if (w) w.textContent = E.novaWacht(S);
   const nw = $('#nwaarde'); if (nw) nw.innerHTML = novaRegel();
+  if ($('#nm-tot')) novaLive();
   const eb = $('#ebar'); if (eb) { eb.style.width = Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100) + '%'; $('#etekst').textContent = `${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}`; }
 }
 

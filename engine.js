@@ -10,7 +10,7 @@ window.ENGINE = (() => {
       v: 1, r: {}, n: {}, fase: {}, open: [...D.START_OPEN], up: {}, magie: 0,
       nova: prev ? prev.nova : 0, novaUit: prev ? prev.novaUit : 0, star: prev ? prev.star : {},
       ach: prev ? prev.ach : {}, runs: prev ? prev.runs : 0,
-      earned: 0, energieTot: 0, houtTot: 0, t: Date.now(), start: prev ? prev.start : Date.now(),
+      earned: 0, earnedPer: {}, energieTot: 0, houtTot: 0, t: Date.now(), start: prev ? prev.start : Date.now(),
       rondeStart: Date.now(), verzamelT: 0, instel: prev ? prev.instel : { offlineMelding: true },
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
@@ -217,7 +217,7 @@ window.ENGINE = (() => {
       S.r[k] = Math.max(0, Math.min(cap(S, k, m), S.r[k] + net * dt));
       if (R.prod[k] > 0) {
         const gemaakt = R.prod[k] * eff * dt;
-        S.earned += RES[k].waarde * gemaakt;
+        S.earned += RES[k].waarde * gemaakt; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + gemaakt;
         S.ooit[k] = (S.ooit[k] || 0) + gemaakt;
         if (k === 'energie') S.energieTot += gemaakt;
         if (k === 'hout') S.houtTot += gemaakt;
@@ -379,7 +379,7 @@ window.ENGINE = (() => {
     const m = mods(S), w = tikWaarde(S, m, x), uit = {};
     for (const [k, v0] of Object.entries(w)) {
       const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + v0 * keer); uit[k] = S.r[k] - voor;
-      S.earned += uit[k] * RES[k].waarde; if (k === 'hout') S.houtTot += uit[k];
+      S.earned += uit[k] * RES[k].waarde; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + uit[k]; if (k === 'hout') S.houtTot += uit[k];
     }
     return uit;
   }
