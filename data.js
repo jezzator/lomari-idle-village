@@ -29,7 +29,7 @@ window.DATA = (() => {
     offlineUren: 8,
     novaPct: 0.03,
     hergroeiEnergie: 100000,     // Hergroei beschikbaar na zoveel energie (moment dat Veyra verschijnt)
-    verzamelSec: 2,             // één keer verzamelen = 2 s productie hout + bladeren
+    verzamelSec: .1,            // één tik = 0,1 s productie hout + bladeren (minimaal 1 van elk)
     magieMax: 12,
   };
   const novaFormule = earned => Math.floor(3 * Math.cbrt(earned / 1e10));
@@ -111,12 +111,12 @@ window.DATA = (() => {
     { id: 'nestbouw', cat: 'C', naam: 'Nestenbouwers',          tekst: 'Bouwt vanzelf woningen als er te weinig bewoners zijn', k: { hout: 3000, bladeren: 2000 }, eis: { b: ['nest', 15] }, fx: [{ t: 'auto', id: 'wonen' }] },
     { id: 'voorraadw',cat: 'C', naam: 'Voorraadwacht',          tekst: 'Bouwt vanzelf een Bessentuin bij voedseltekort', k: { hout: 2000, bladeren: 1000 }, eis: { b: ['bessen', 15] }, fx: [{ t: 'auto', id: 'voedsel' }] },
     { id: 'groeiw',   cat: 'C', naam: 'Groeiwachters',          tekst: 'Voert groeifases vanzelf uit zodra ze betaalbaar zijn', k: { hout: 100000, steen: 20000, gereedschap: 3000 }, eis: { u: ['vakman'] }, fx: [{ t: 'auto', id: 'fase' }] },
-    { id: 'handsch',  cat: 'F', naam: 'Stevige handschoenen',   tekst: 'Elke tik ×2',                      k: { hout: 200 }, eis: { tik: 25 }, fx: [{ t: 'tikX', x: 2 }] },
+    { id: 'handsch',  cat: 'F', naam: 'Stevige handschoenen',   tekst: 'Elke tik ×1,5',                    k: { hout: 200 }, eis: { tik: 25 }, fx: [{ t: 'tikX', x: 1.5 }] },
     { id: 'manden2',  cat: 'F', naam: 'Brede manden',           tekst: 'Een tik geeft ook lianen en voedsel', k: { hout: 1500, bladeren: 500 }, eis: { b: ['liaan', 5] }, fx: [{ t: 'tikRes', res: ['lianen', 'voedsel'] }] },
-    { id: 'ritme',    cat: 'F', naam: 'Ritme van het werk',     tekst: 'Tik 10 keer binnen 3 seconden: de tiende tik geeft ×5', k: { bladeren: 3000, lianen: 500 }, eis: { tik: 100 }, fx: [{ t: 'ritme' }] },
+    { id: 'ritme',    cat: 'F', naam: 'Ritme van het werk',     tekst: 'Tik 10 keer binnen 3 seconden: de tiende tik geeft ×3', k: { bladeren: 3000, lianen: 500 }, eis: { tik: 100 }, fx: [{ t: 'ritme' }] },
     { id: 'steenh',   cat: 'F', naam: 'Steenhouwershand',       tekst: 'Een tik geeft ook steen',           k: { hout: 8000, steen: 1000 }, eis: { d: 'Dorukha' }, fx: [{ t: 'tikRes', res: ['steen'] }] },
-    { id: 'gedeeld',  cat: 'F', naam: 'Gedeelde arbeid',        tekst: '+5% per tik voor elke ingezette Lomari', k: { hout: 20000, bladeren: 5000 }, eis: { lom: 5 }, fx: [{ t: 'tikLomari', plus: .05 }] },
-    { id: 'oogst',    cat: 'F', naam: 'Langere oogst',          tekst: 'Een tik geeft 4 seconden productie in plaats van 2', k: { hout: 50000, gereedschap: 2000 }, eis: { tik: 500 }, fx: [{ t: 'tikSec', sec: 4 }] },
+    { id: 'gedeeld',  cat: 'F', naam: 'Gedeelde arbeid',        tekst: '+3% per tik voor elke ingezette Lomari', k: { hout: 20000, bladeren: 5000 }, eis: { lom: 5 }, fx: [{ t: 'tikLomari', plus: .03 }] },
+    { id: 'oogst',    cat: 'F', naam: 'Langere oogst',          tekst: 'Een tik geeft twee keer zoveel productie', k: { hout: 50000, gereedschap: 2000 }, eis: { tik: 500 }, fx: [{ t: 'tikSec', sec: .2 }] },
     { id: 'snelmand', cat: 'F', naam: 'Snellere manden',        tekst: 'Verzamelmanden tikken elke 5 seconden in plaats van 10', k: { hout: 30000, lianen: 10000 }, eis: { u: ['manden'] }, fx: [{ t: 'mandSec', sec: 5 }] },
     { id: 'bron',     cat: 'D', naam: 'Zingende bron',          tekst: 'Flohara-energie ×1,5',             k: { bladeren: 2000, kristal: 100 }, eis: { b: ['zangplek', 10] }, fx: [{ t: 'prod', res: 'energie', x: 1.5 }] },
     { id: 'maaltijd', cat: 'E', naam: 'Gedeelde maaltijd',      tekst: 'Slaapnest: 3 bewoners in plaats van 2', k: { hout: 800, bladeren: 800 }, eis: { b: ['nest', 10] }, fx: [{ t: 'bed', b: 'nest', plus: 1 }] },
