@@ -195,7 +195,7 @@ function effectNu(u) {
     const w0 = E.tikWaarde(S, m0); S.up[u.id] = true; const w1 = E.tikWaarde(S); delete S.up[u.id];
     const tx = w => Object.entries(w).map(([k, v]) => `${fmtR(v)} ${RES[k].naam.toLowerCase()}`).join(' + ');
     if (tx(w0) !== tx(w1)) t.push(`een tik geeft nu ${tx(w0)}, daarna ${tx(w1)}`);
-    if (u.fx.some(e => e.t === 'ritme')) t.push('tik 10 keer binnen 3 seconden en de tiende tik geeft ×3');
+    if (u.fx.some(e => e.t === 'ritme')) t.push('tik 10 keer binnen 3 seconden en de tiende tik geeft ×4');
     if (u.fx.some(e => e.t === 'mandSec')) t.push('de manden tikken twee keer zo vaak');
   }
   if (u.fx.some(e => e.t === 'faseKost')) t.push('elke fase-upgrade kost 20% minder');
@@ -418,8 +418,8 @@ $('#verzamel').onclick = () => {
   const nu = performance.now(); if (nu - (tikTijden.at(-1) || 0) < 200) return;   // max 5 tikken per seconde
   S.tikken = (S.tikken || 0) + 1; tikTijden = tikTijden.filter(t => nu - t < 3000); tikTijden.push(nu);
   const ritme = E.mods(S).ritme && tikTijden.length >= 10; if (ritme) tikTijden = [];
-  const uit = E.verzamel(S, 1, ritme ? 3 : 1), f = document.createElement('span'); f.className = 'zweef' + (ritme ? ' ritme' : '');
-  f.innerHTML = (ritme ? '<b>Ritme ×3</b> ' : '') + Object.entries(uit).filter(([, v]) => v > 0).map(([k, v]) => `${ico(k)}+${fmt(v)}`).join(' ');
+  const uit = E.verzamel(S, 1, ritme ? 4 : 1), f = document.createElement('span'); f.className = 'zweef' + (ritme ? ' ritme' : '');
+  f.innerHTML = (ritme ? '<b>Ritme ×4</b> ' : '') + Object.entries(uit).filter(([, v]) => v > 0).map(([k, v]) => `${ico(k)}+${fmt(v)}`).join(' ');
   $('#verzamel').after(f); setTimeout(() => f.remove(), 900); ververs();
 };
 $('#paneel').addEventListener('click', e => {
