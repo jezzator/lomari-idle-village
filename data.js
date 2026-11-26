@@ -66,6 +66,28 @@ window.DATA = (() => {
   const novaDeler = 2e11, novaFormule = earned => Math.floor(3 * Math.cbrt(earned / novaDeler));
   const novaWaarde = n => (n / 3) ** 3 * novaDeler;   // waarde die nodig is voor n Nova (zonder bonussen)
   const magieKost = k => ({ kristal: 40 * 4 ** k, energie: 25 * 4 ** k });
+  // Ambachten: per grondstof een ladder. Elke trede: die grondstof ×stap. Betaald in de grondstof zelf (×groei per trede),
+  // vanaf trede IV ook gereedschap, vanaf VII kristallen. Open bij 'open' stuks van het eerste gebouw. Terug naar 0 bij Hergroei.
+  const AMB = { stap: 1.15, max: 10, groei: 3, zeldzaamMax: 5, zeldzaamGroei: 2 };
+  const AMBACHT = {
+    hout:        { naam: 'Ambacht van het hout',      b: 'hakplek',  open: 10, basis: 1000 },
+    bladeren:    { naam: 'Ambacht van de bladeren',   b: 'pluk',     open: 10, basis: 1000 },
+    lianen:      { naam: 'Ambacht van de lianen',     b: 'liaan',    open: 10, basis: 500 },
+    voedsel:     { naam: 'Ambacht van het voedsel',   b: 'bessen',   open: 10, basis: 700 },
+    steen:       { naam: 'Ambacht van de steen',      b: 'groeve',   open: 10, basis: 400 },
+    gereedschap: { naam: 'Ambacht van het gereedschap', b: 'werkbank', open: 10, basis: 150 },
+    kristal:     { naam: 'Ambacht van de kristallen', b: 'kristgrot', open: 10, basis: 40 },
+    energie:     { naam: 'Ambacht van de Flohara-energie', b: 'zangplek', open: 10, basis: 25 },
+    nevelparel:  { naam: 'Ambacht van de nevelparels', b: 'nevel',   open: 3, basis: 5 },
+    kroonhars:   { naam: 'Ambacht van de kroonhars',  b: 'harst',    open: 3, basis: 5 },
+    wortelgloed: { naam: 'Ambacht van het wortelgloed', b: 'wortelk', open: 3, basis: 2 },
+  };
+  function ambKost(k, t) {   // t = huidige trede (0 = nog niets gekocht)
+    const a = AMBACHT[k], z = !!RES[k].zeldzaam, c = { [k]: a.basis * (z ? AMB.zeldzaamGroei : AMB.groei) ** t };
+    if (!z && t >= 3) c.gereedschap = (c.gereedschap || 0) + 100 * AMB.groei ** (t - 3);
+    if (!z && t >= 6) c.kristal = (c.kristal || 0) + 20 * AMB.groei ** (t - 6);
+    return c;
+  }
 
   const DISTRICTS = {
     Takelom:  { functie: 'Bouwplaatsen en grote boomconstructies', open: {},                                    vak: [0, 0, 40, 28] },
@@ -221,5 +243,5 @@ window.DATA = (() => {
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
   ];
 
-  return { GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

@@ -15,6 +15,7 @@ window.BALANS = (() => {
     for (const d in D.DISTRICTS) if (!S.open.includes(d)) o.push({ t: 'district', id: d, c: D.DISTRICTS[d].open });
     for (const u of D.U) if (!S.up[u.id] && E.eisOk(S, u.eis)) o.push({ t: 'upgrade', id: u.id, c: E.upKost(S, u) });
     if (E.magieOpen(S)) o.push({ t: 'magie', c: E.magieKost(S) });
+    for (const k of E.RK) if (E.ambOpen(S, k) && E.ambTrede(S, k) < E.ambMax(k)) o.push({ t: 'amb', id: k, c: E.ambKost(S, k) });
     for (const b of E.BK) if (B[b].p && S.n[b] > 0 && S.fase[b] >= D.runeFase && !S.rune?.[b]) o.push({ t: 'rune', id: b, c: E.runeKost(S, 'groei') });
     return o;
   }
@@ -25,6 +26,7 @@ window.BALANS = (() => {
     else if (o.t === 'district') { if (terug) S.open.pop(); else S.open.push(o.id); }
     else if (o.t === 'upgrade') S.up[o.id] = !terug;
     else if (o.t === 'rune') { S.rune = S.rune || {}; if (terug) delete S.rune[o.id]; else S.rune[o.id] = 'groei'; }
+    else if (o.t === 'amb') { S.amb = S.amb || {}; S.amb[o.id] = (S.amb[o.id] || 0) + d; }
     else S.magie += d;
   }
   function winst(S, o, voor) {
@@ -72,6 +74,7 @@ window.BALANS = (() => {
     if (o.t === 'district') return E.openDistrict(S, o.id);
     if (o.t === 'upgrade') return E.koopUpgrade(S, o.id);
     if (o.t === 'rune') return E.zetRune(S, o.id, 'groei');
+    if (o.t === 'amb') return E.koopAmb(S, o.id);
     return E.koopMagie(S);
   }
 

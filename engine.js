@@ -7,7 +7,7 @@ window.ENGINE = (() => {
 
   function nieuw(prev) {
     const S = {
-      v: 1, r: {}, n: {}, fase: {}, open: [...D.START_OPEN], up: {}, magie: 0,
+      v: 1, r: {}, n: {}, fase: {}, open: [...D.START_OPEN], up: {}, magie: 0, amb: {},
       nova: prev ? prev.nova : 0, novaUit: prev ? prev.novaUit : 0, star: prev ? prev.star : {},
       ach: prev ? prev.ach : {}, runs: prev ? prev.runs : 0,
       earned: 0, earnedPer: {}, energieTot: 0, houtTot: 0, t: Date.now(), start: prev ? prev.start : Date.now(),
@@ -144,6 +144,7 @@ window.ENGINE = (() => {
       m.verbanden.push(v.id);
       if (!v.b && v.fx) for (const e of v.fx) zet(e, 1 + m.verbandPlus);
     }
+    for (const k in S.amb || {}) m.res[k] = (m.res[k] || 1) * D.AMB.stap ** S.amb[k];   // Ambachten
     return m;
   }
 
@@ -391,6 +392,15 @@ window.ENGINE = (() => {
     if (S.up[id] || !eisOk(S, u.eis) || !kan(S, c)) return false;
     betaal(S, c); S.up[id] = true; return true;
   }
+  // Ambachten
+  const ambMax = k => RES[k].zeldzaam ? D.AMB.zeldzaamMax : D.AMB.max;
+  const ambTrede = (S, k) => S.amb?.[k] || 0;
+  const ambOpen = (S, k) => S.n[D.AMBACHT[k].b] >= D.AMBACHT[k].open;
+  const ambKost = (S, k, m = mods(S)) => Object.fromEntries(Object.entries(D.ambKost(k, ambTrede(S, k))).map(([r, v]) => [r, v * m.upKost]));
+  function koopAmb(S, k) {
+    if (!ambOpen(S, k) || ambTrede(S, k) >= ambMax(k)) return false; const c = ambKost(S, k);
+    if (!kan(S, c)) return false; betaal(S, c); (S.amb = S.amb || {})[k] = ambTrede(S, k) + 1; return true;
+  }
   const magieOpen = S => S.open.includes('Voelari') && S.magie < mods(S).magieMax;
   function koopMagie(S) {
     if (!magieOpen(S)) return false; const c = magieKost(S);
@@ -593,7 +603,7 @@ window.ENGINE = (() => {
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k, R) => { const m = mods(S); return cap(S, k, m, R || rates(S, m)); }, kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
-    magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
+    magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     actKan, gebruik, doorbreekKan, doorbreek,

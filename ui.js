@@ -251,6 +251,16 @@ function paneelUpgrades() {
     h += lijst.sort((a, b) => (E.eisOk(S, b.eis) - E.eisOk(S, a.eis)) || (E.kan(S, E.upKost(S, b)) - E.kan(S, E.upKost(S, a)))).map(upgradeKaart).join('');
     if (klaar) h += `<p class="gekocht">✓ Gekocht: ${D.U.filter(u => u.cat === c && S.up[u.id]).map(u => `${u.naam} (${u.tekst})`).join(' · ')}</p>`;
   }
+  const stapT = String(D.AMB.stap).replace('.', ',');
+  h += `<h2>Ambachten</h2><p class="intro">Per grondstof een ladder. Elke trede maakt die grondstof ×${stapT}. Je betaalt vooral in de grondstof zelf; dure treden passen alleen in een grote opslag. Bij Hergroei begin je weer bij 0.</p>`;
+  for (const k of E.RK) {
+    if (RES[k].zeldzaam && !S.open.includes(RES[k].zeldzaam)) continue;
+    const a = D.AMBACHT[k], t = E.ambTrede(S, k), max = E.ambMax(k), x = (D.AMB.stap ** t).toFixed(2).replace('.', ',');
+    if (t >= max) { h += `<p class="gekocht">✓ ${a.naam}: alle ${max} treden (${RES[k].naam} ×${x})</p>`; continue; }
+    h += E.ambOpen(S, k)
+      ? `<div class="up"><div><h3>${a.naam} ${D.ROMEIN[t]}</h3><p class="wat">${RES[k].naam} ×${stapT} (${t} van ${max} treden, nu ×${x})</p><p class="kost">${kost(E.ambKost(S, k))}</p></div><button class="knop" data-amb="${k}">Koop</button></div>`
+      : `<div class="up slot"><div><h3>${a.naam}</h3><p>${RES[k].naam} ×${stapT} per trede, ${max} treden</p><p class="eis">Vereist: ${a.open} × ${B[a.b].naam}</p></div></div>`;
+  }
   return h;
 }
 function boomHTML(id) {
@@ -367,7 +377,7 @@ function paneelInstel() {
 }
 
 function maakSig() {
-  return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.star, S.nova, S.novaUit,
+  return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
     Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0)).join(), S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
 }
@@ -379,7 +389,7 @@ function render() {
   const scroll = $('#paneel').scrollTop;
   $('#paneel').innerHTML = { dorp: paneelDorp, lomari: paneelLomari, upgrades: paneelUpgrades, stam: paneelStam, prest: paneelPrest, instel: paneelInstel }[tab]();
   $('#paneel').scrollTop = scroll; flits = null; faseMoment = null;
-  const beschikbaar = D.U.filter(u => !S.up[u.id] && E.eisOk(S, u.eis) && E.kan(S, E.upKost(S, u))).length + (E.magieOpen(S) && E.kan(S, E.magieKost(S)) ? 1 : 0);
+  const beschikbaar = D.U.filter(u => !S.up[u.id] && E.eisOk(S, u.eis) && E.kan(S, E.upKost(S, u))).length + (E.magieOpen(S) && E.kan(S, E.magieKost(S)) ? 1 : 0) + E.RK.filter(k => E.ambOpen(S, k) && E.ambTrede(S, k) < E.ambMax(k) && E.kan(S, E.ambKost(S, k))).length;
   $('#lmn').textContent = S.vondsten.length || '';
   $('#upn').textContent = beschikbaar ? beschikbaar : '';
   ververs();
@@ -401,6 +411,7 @@ function ververs() {
   $$('[data-fase]').forEach(el => el.disabled = !E.kan(S, E.faseKost(S, el.dataset.fase, m)));
   $$('[data-up]').forEach(el => el.disabled = !E.kan(S, E.upKost(S, D.U.find(u => u.id === el.dataset.up))));
   $$('[data-magie]').forEach(el => el.disabled = !E.kan(S, E.magieKost(S)));
+  $$('[data-amb]').forEach(el => el.disabled = !E.kan(S, E.ambKost(S, el.dataset.amb)));
   $$('[data-open]').forEach(el => { const c = D.DISTRICTS[el.dataset.open].open, p = E.past(S, c, m); el.disabled = !p || !E.kan(S, c); el.textContent = p ? `Open ${el.dataset.open}` : 'Opslag te klein: bouw eerst meer opslag'; });
   $$('.kc').forEach(el => el.classList.toggle('mis', S.r[el.dataset.r] < +el.dataset.v - 1e-9));
   $$('[data-reis]').forEach(el => { const l = S.lom[el.dataset.reis]; if (l) el.textContent = duur(l.reis); });
@@ -525,6 +536,7 @@ $('#paneel').addEventListener('click', e => {
   else if (d.open) { if (E.openDistrict(S, d.open)) { toast(`${d.open} is open`); after(); } }
   else if (d.up) { if (E.koopUpgrade(S, d.up)) after(); }
   else if (d.magie) { if (E.koopMagie(S)) after(); }
+  else if (d.amb) { if (E.koopAmb(S, d.amb)) after(); }
   else if (d.star) { if (E.koopStar(S, d.star)) after(); }
   else if (d.vondst) { const r = E.kiesVondst(S, +d.vondst, d.keuze); if (r?.bonus) toast(`Blijvend +1% ${RES[r.bonus].naam.toLowerCase()}`); else if (r) toast('Buit binnengehaald'); after(); }
   else if (b.id === 'hergroei') {
