@@ -16,7 +16,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
-      reliek: prev ? prev.reliek || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
+      reliek: prev ? prev.reliek || {} : {}, beproef: prev?.beproefVolgende || null, beproefKlaar: prev ? prev.beproefKlaar || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -121,12 +121,14 @@ window.ENGINE = (() => {
       else if (e.t === 'tocht') m.tocht += e.plus;
       else if (e.t === 'bouwD') m.bouwD[e.d] = (m.bouwD[e.d] || 1) * sx(e.x);
     };
-    const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...Object.keys(S.star).filter(k => S.star[k])];
+    const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...(S.beproef === 'stam' ? [] : Object.keys(S.star).filter(k => S.star[k]))];
+    for (const id in S.beproefKlaar || {}) for (const e of D.BEPROEF[id].fx) zet(e);   // Beloningen van Beproevingen
+    const geenGaven = S.beproef === 'lomari';
     for (const id of ids) for (const e of fx(id)) zet(e);
     for (const [k, v] of Object.entries(S.vondstBonus || {})) m.res[k] = (m.res[k] || 1) * (1 + v);
     // Lomari: passief alleen als ingezet (niet onderweg); 100% in eigen district, anders 40% (Koro: overal 100%)
     for (const def of LM.L) {
-      const l = S.lom?.[def.id], d = plek(S, def.id); if (!l || !d) continue;
+      const l = S.lom?.[def.id], d = plek(S, def.id); if (!l || !d || geenGaven) continue;
       const s = def.overal || d === def.d ? 1 : C.buiten;
       for (const e of def.pas(l.band, d)) zet(e, s);
     }
@@ -135,9 +137,9 @@ window.ENGINE = (() => {
     // Bronwerk: elke 5e trede +5% Nova
     m.novaX *= (1 + D.BRONWERK.nova) ** Math.floor((S.bronwerk?.t || 0) / D.BRONWERK.novaElk);
     // Upgradebomen: gekochte knopen gelden altijd
-    for (const id in S.lom || {}) for (const i of S.lom[id].boom || []) for (const e of LM.BOOM[id][i][2]) zet(e);
+    if (!geenGaven) for (const id in S.lom || {}) for (const i of S.lom[id].boom || []) for (const e of LM.BOOM[id][i][2]) zet(e);
     // Actieve en ultieme vaardigheden die nu lopen
-    for (const [id, a] of Object.entries(S.act || {})) if (a.over > 0) { const A = LM.ACT[id], lijstFx = a.ult && A.ultFx ? A.ultFx : A.fx; if (lijstFx) for (const e of lijstFx) zet(e, a.ult && !A.ultFx ? C.ultSterk : 1); }
+    if (!geenGaven) for (const [id, a] of Object.entries(S.act || {})) if (a.over > 0) { const A = LM.ACT[id], lijstFx = a.ult && A.ultFx ? A.ultFx : A.fx; if (lijstFx) for (const e of lijstFx) zet(e, a.ult && !A.ultFx ? C.ultSterk : 1); }
     // Gebieden: bonus als hun Lomari er staan
     if (plek(S, 'nira') === 'Valunari') m.dist.Valunari = (m.dist.Valunari || 1) * 2;
     m.kroveliAlles = ['piko', 'kavo'].some(id => plek(S, id) === 'Kroveli');
@@ -145,8 +147,8 @@ window.ENGINE = (() => {
     if (wortel) m.dist.Lomaruun = (m.dist.Lomaruun || 1) * (1 + .25 * wortel);
     // Verbanden
     const lijst = verbindingen(S);
-    m.rivier = LM.V.some(v => v.id === 'rivier' && !v.b && verbandActief(S, v, false, lijst));
-    for (const v of LM.V) if (verbandActief(S, v, m.rivier, lijst)) {
+    m.rivier = S.beproef !== 'verband' && LM.V.some(v => v.id === 'rivier' && !v.b && verbandActief(S, v, false, lijst));
+    for (const v of LM.V) if (S.beproef !== 'verband' && verbandActief(S, v, m.rivier, lijst)) {
       m.verbanden.push(v.id);
       if (!v.b && v.fx) for (const e of v.fx) zet(e, 1 + m.verbandPlus);
     }
@@ -162,7 +164,7 @@ window.ENGINE = (() => {
       + (isNacht(S) ? m.nachtTev : 0) - dip;
   }
   // Dag en nacht: S.klok loopt alleen als je speelt (en offline door, zonder nacht-effect)
-  const isNacht = S => ((S.klok || 0) % BAL.dagSec) >= BAL.dagSec * (1 - BAL.nachtDeel);
+  const isNacht = S => S.beproef === 'nacht' || ((S.klok || 0) % BAL.dagSec) >= BAL.dagSec * (1 - BAL.nachtDeel);
   const nachtF = (S, m) => !m.geenNacht && isNacht(S) ? Math.min(1, BAL.nachtProd + m.nacht) : 1;
   const stilF = (S, b, m) => (S.geb || []).some(g => g.b === b) ? (m.schild ? .5 : 0) : 1;
   function dagInfo(S) {
@@ -422,6 +424,7 @@ window.ENGINE = (() => {
     return uit;
   }
   function verzamel(S, keer = 1, x = 1, geenCap = false) {
+    if (S.beproef === 'tik') return {};
     const m = mods(S); m.geenCap = geenCap; const w = tikWaarde(S, m, x), uit = {};
     for (const [k, v0] of Object.entries(w)) {
       uit[k] = vul(S, k, v0 * keer, m);
@@ -605,9 +608,12 @@ window.ENGINE = (() => {
   // ---------- Hergroei ----------
   const hergroeiKlaar = S => S.energieTot >= BAL.hergroeiEnergie;
   const novaWacht = S => hergroeiKlaar(S) ? Math.floor(D.novaFormule(S.earned) * mods(S).novaX) : 0;
-  function hergroei(S) {
+  const beproefOpen = S => S.runs >= D.BEPROEF_VANAF;
+  function hergroei(S, beproef = null) {
     const n = novaWacht(S); if (n < 1) return null;
-    const T = nieuw({ ...S, nova: S.nova + n, runs: S.runs + 1 }); for (let i = 0; i < 2; i++) geefGave(T, 'woud'); T.gaveNieuw = []; return T;
+    const klaar = S.beproef ? { ...S.beproefKlaar, [S.beproef]: true } : S.beproefKlaar;   // ronde gehaald: beloning voor altijd
+    const volgende = beproef && D.BEPROEF[beproef] && beproefOpen(S) ? beproef : null;
+    const T = nieuw({ ...S, nova: S.nova + n, runs: S.runs + 1, beproefKlaar: klaar, beproefVolgende: volgende }); for (let i = 0; i < 2; i++) geefGave(T, 'woud'); T.gaveNieuw = []; return T;
   }
   function koopStar(S, id) {
     const s = D.STAR.find(x => x.id === id);
@@ -644,7 +650,7 @@ window.ENGINE = (() => {
     novaW, magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
-    bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
+    beproefOpen, bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
     runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };

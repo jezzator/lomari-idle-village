@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = []; S1.gaveKocht = S1.gaveKocht || {}; S1.reliek = S1.reliek || {}; S1.bronwerk = S1.bronwerk || { t: 0, in: {} };
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = []; S1.gaveKocht = S1.gaveKocht || {}; S1.reliek = S1.reliek || {}; S1.beproef = S1.beproef || null; S1.beproefKlaar = S1.beproefKlaar || {}; S1.bronwerk = S1.bronwerk || { t: 0, in: {} };
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -366,13 +366,23 @@ function novaLive() {
   const ouder = S.earned - som; $('#nm-ouder-r').hidden = ouder < 1; $('#nm-ouder').textContent = fmt(ouder);
   $('#nm-tot').textContent = fmt(S.earned);
 }
+function beproefHTML(klaar) {
+  const B0 = D.BEPROEF, nu = S.beproef;
+  if (!E.beproefOpen(S) && !nu) return `<div class="kaart"><h2>Beproevingen</h2><p class="nb">Na ${D.BEPROEF_VANAF} keer Hergroei kun je een ronde met een beperking spelen, voor een beloning die altijd blijft. Nu: ${S.runs} van ${D.BEPROEF_VANAF}.</p></div>`;
+  let h = `<div class="kaart"><h2>Beproevingen</h2>`;
+  if (nu) h += `<p class="groot"><b>Deze ronde: ${B0[nu].naam}</b></p><p>${B0[nu].tekst}. Haal je de Hergroei, dan krijg je voor altijd: ${B0[nu].beloning.toLowerCase()}.</p><div class="rij"><button class="knop klein licht" data-beproefstop="1">Stop de beproeving</button></div>`;
+  else h += `<p>Kies bij je volgende Hergroei een beperking voor de nieuwe ronde. Haal je in die ronde opnieuw de Hergroei, dan blijft de beloning altijd. Offline geldt de beperking niet.</p>`;
+  h += Object.entries(B0).map(([id, x]) => { const heb = S.beproefKlaar[id];
+    return `<div class="up${heb ? ' heb' : ''}"><div><h3>${x.naam}</h3><p>${x.tekst}.</p><p class="eis">${heb ? 'Gehaald: ' : 'Beloning: '}${x.beloning}</p></div>${heb || nu === id ? '' : `<button class="knop klein" data-beproef="${id}" ${klaar ? '' : 'disabled'}>Hergroei hiermee</button>`}</div>`; }).join('');
+  return h + (klaar ? '' : '<p class="nb">De knoppen werken zodra Hergroei beschikbaar is.</p>') + '</div>';
+}
 function paneelStam() {
   const vrij = S.nova - S.novaUit, wacht = E.novaWacht(S), klaar = E.hergroeiKlaar(S);
   let h = `<div class="kaart hg"><h2>Hergroei</h2>
     <p>Begin het dorp opnieuw. Je houdt je Nova, de Sterrenstam en je prestaties. Gebouwen, voorraad, upgrades en de districten na de eerste drie beginnen opnieuw.</p>
     ${klaar ? `<p class="groot">Hergroei levert nu <b id="wacht">${wacht}</b> Nova op</p>${E.mods(S).veyra ? `<p>Veyra: deze ronde ${(wacht / Math.max(.1, (Date.now() - S.rondeStart) / 3600)).toFixed(2).replace('.', ',')} Nova per uur. Zolang dit stijgt, loont doorspelen.</p>` : ''}<button class="knop" id="hergroei">Hergroei</button>`
       : `<p>Beschikbaar na ${fmt(BAL.hergroeiEnergie)} Flohara-energie in deze ronde.</p><div class="bar"><i id="ebar" style="width:${Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100)}%"></i></div><small class="nb" id="etekst">${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}</small>`}
-    <p class="nb" id="nwaarde">${novaRegel()}</p>${novaUitleg()}</div><h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
+    <p class="nb" id="nwaarde">${novaRegel()}</p>${novaUitleg()}</div>${beproefHTML(klaar)}<h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
   const takken = [...new Set(D.STAR.map(s => s.tak))];
   for (const t of takken) {
     h += `<h3 class="tak">${t}</h3>` + D.STAR.filter(s => s.tak === t).map(s => {
@@ -409,7 +419,7 @@ function paneelInstel() {
 function maakSig() {
   return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
-    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
+    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.beproef, S.beproefKlaar, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
 }
 function render() {
   sig = maakSig();
@@ -573,6 +583,14 @@ $('#paneel').addEventListener('click', e => {
   else if (d.amb) { if (E.koopAmb(S, d.amb)) after(); }
   else if (d.star) { if (E.koopStar(S, d.star)) after(); }
   else if (d.vondst) { const r = E.kiesVondst(S, +d.vondst, d.keuze); if (r?.bonus) toast(`Blijvend +1% ${RES[r.bonus].naam.toLowerCase()}`); else if (r) toast('Buit binnengehaald'); after(); }
+  else if (d.beproef) {
+    const x = D.BEPROEF[d.beproef], n = E.novaWacht(S);
+    dialoog(x.naam, `<p>Hergroei nu met <b>${n} Nova</b>. De nieuwe ronde heeft een beperking: ${x.tekst.toLowerCase()}.</p><p>Haal je in die ronde de Hergroei, dan krijg je voor altijd: ${x.beloning.toLowerCase()}. Je kunt de beproeving altijd stoppen.</p>`,
+      'Hergroei hiermee', () => { S = E.hergroei(S, d.beproef); sel = 'Takelom'; tab = 'stam'; after(); toast(`Hergroei: ${S.nova} Nova · beproeving ${x.naam}`); });
+  }
+  else if (d.beproefstop) {
+    dialoog('Beproeving stoppen?', `<p>De beperking verdwijnt meteen. Je krijgt dan geen beloning voor ${D.BEPROEF[S.beproef].naam}.</p>`, 'Stop', () => { S.beproef = null; after(); toast('De beproeving is gestopt'); });
+  }
   else if (b.id === 'hergroei') {
     const n = E.novaWacht(S);
     dialoog('Hergroei', `<p>Het dorp begint opnieuw en jij krijgt <b>${n} Nova</b>. Daarmee kom je op ${S.nova + n} Nova: +${Math.round((S.nova + n) * BAL.novaPct * 100)}% op alle productie.</p><p>Gebouwen, voorraad, upgrades en de districten Dorukha, Rikilari, Frikto en Voelari beginnen opnieuw.</p>`,

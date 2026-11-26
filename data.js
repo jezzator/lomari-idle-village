@@ -78,6 +78,17 @@ window.DATA = (() => {
   };
   // Bronwerk (deel C): staat De oude bron op fase 5, dan neemt hij zeldzame grondstoffen op. Wat je inlegt blijft bewaard,
   // ook na Hergroei, dus een trede mag over meerdere rondes lopen. Elke trede +8% op alle productie; elke 5e trede ook +5% Nova.
+  // Beproevingen (deel C): vanaf de derde Hergroei kun je een ronde met een beperking beginnen. Haal je in die ronde de
+  // Hergroei, dan krijg je de beloning voor altijd. Stoppen mag; dan vervalt de beperking zonder beloning. Offline geldt de beperking niet.
+  const BEPROEF_VANAF = 3;
+  const BEPROEF = {
+    verband: { naam: 'Losse draden',   tekst: 'Verbanden werken niet', beloning: 'Verband-bonussen +15%', fx: [{ t: 'verband', plus: .15 }] },
+    tik:     { naam: 'Stille handen',  tekst: 'Verzamelen levert niets op, ook niet via manden', beloning: 'Elke tik ×2', fx: [{ t: 'tikX', x: 2 }] },
+    nacht:   { naam: 'Lange nacht',    tekst: 'De hele ronde is het nacht', beloning: "'s Nachts productie +10%", fx: [{ t: 'nacht', plus: .1 }] },
+    lomari:  { naam: 'Zonder gaven',   tekst: 'Gaven, upgradebomen en vaardigheden van de Lomari werken niet', beloning: 'Alle productie +10%',
+               fx: Object.keys(RES).map(res => ({ t: 'prod', res, x: 1.1 })) },
+    stam:    { naam: 'Kale stam',      tekst: 'De Sterrenstam werkt niet, ook de gebieden blijven dicht', beloning: 'Hergroei +10% Nova', fx: [{ t: 'nova', x: 1.1 }] },
+  };
   const BRONWERK = { max: 20, prod: .08, nova: .05, novaElk: 5, groei: 1.35, kost: { nevelparel: 40, kroonhars: 30, wortelgloed: 12 } };
   const bronwerkKost = t => Object.fromEntries(Object.entries(BRONWERK.kost).map(([k, v]) => [k, Math.ceil(v * BRONWERK.groei ** t)]));
   const GAVE_MAX = 5, GAVE_START = { groei: 2 }, GAVE_GEBKANS = .25, GAVE_KOOPGROEI = 1.5;   // elke aankoop ×1,5 duurder; terug naar begin bij Hergroei
@@ -278,5 +289,5 @@ window.DATA = (() => {
     { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
   ];
 
-  return { BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();
