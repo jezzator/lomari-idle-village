@@ -1,5 +1,6 @@
 // Lomari: Idle Village — muziek: zachte klankvelden, ter plekke gemaakt met Web Audio (geen bestanden, geen auteursrecht).
 // Het spel wisselt tussen stukken, elk met een eigen toonsoort, akkoordgang, klank en tempo. Binnen een stuk groeit en krimpt
+// Eigen nummers in muziek/ gaan voor; waar die ontbreken, speelt de gegenereerde muziek.
 // de muziek (eerst alleen klankveld, dan bas, harp-melodie en belletjes) en de melodie herhaalt en varieert haar eigen motieven.
 // Overdag lichter en warmer, 's nachts lager en stiller. Begint pas na de eerste tik; stopt als de app op de achtergrond staat.
 window.MUZIEK = (() => {
@@ -23,6 +24,37 @@ window.MUZIEK = (() => {
   const kies = a => a[Math.floor(Math.random() * a.length)];
   const kans = p => Math.random() < p;
   const later = (f, ms) => { const id = setTimeout(() => { timers = timers.filter(x => x !== id); f(); }, ms); timers.push(id); };
+
+  // Eigen nummers (mp3 in muziek/). Heeft dag of nacht geen nummers, dan speelt daar de gegenereerde muziek.
+  const NUMMERS = { dag: ['muziek/dag-1.mp3'], nacht: [] };
+  let speler = null, bg = null, nummer = '';
+  const lijst = () => NUMMERS[nacht ? 'nacht' : 'dag'];
+  const bestandModus = () => lijst().length > 0;
+  function maakSpeler() {
+    speler = new Audio(); speler.preload = 'auto';
+    bg = ctx.createGain(); bg.gain.value = 1.6; ctx.createMediaElementSource(speler).connect(bg); bg.connect(uit);
+    speler.addEventListener('ended', () => { if (aan && !verborgen) bestandModus() ? speelNummer() : maat(); });
+    speler.addEventListener('error', () => { NUMMERS.dag = NUMMERS.dag.filter(x => x !== nummer); NUMMERS.nacht = NUMMERS.nacht.filter(x => x !== nummer); if (aan && !verborgen) bestandModus() ? speelNummer() : maat(); });
+  }
+  function speelNummer(hervat) {
+    if (!speler) maakSpeler();
+    const l = lijst(); if (!l.length) return;
+    bg.gain.cancelScheduledValues(ctx.currentTime); bg.gain.setValueAtTime(1.6, ctx.currentTime);
+    if (!(hervat && l.includes(nummer) && speler.src)) {
+      let n; do n = kies(l); while (l.length > 1 && n === nummer);
+      nummer = n; speler.src = n;
+    }
+    speler.play().catch(() => {});
+  }
+  // Bij de overgang naar dag of nacht: zacht wegfaden en overstappen op wat bij het uur hoort.
+  function wissel() {
+    if (!aan || verborgen || !ctx || ctx.state !== 'running') return;
+    const spelend = speler && !speler.paused;
+    if (!spelend && !bestandModus()) { if (stuk) lengte = Math.min(lengte, stap + 2); return; }
+    stopLussen();
+    if (spelend) bg.gain.setTargetAtTime(0, ctx.currentTime, 1);
+    later(() => { if (speler) speler.pause(); bestandModus() ? speelNummer() : (stuk && (stap = lengte), maat()); }, spelend ? 4000 : 0);
+  }
 
   // Speelstand van het huidige stuk
   let stuk = null, vorigStuk = null, stap = 0, lengte = 0, trans = 0, motief = null;
@@ -135,10 +167,10 @@ window.MUZIEK = (() => {
   function speel() {
     if (!aan || verborgen) return;
     if (!ctx && !maak()) return;
-    const go = () => { zetVolume(); if (!timers.length) maat(); };
+    const go = () => { zetVolume(); if (bestandModus()) { if (!speler || speler.paused) { stopLussen(); speelNummer(true); } } else if (!timers.length) maat(); };
     ctx.state === 'running' ? go() : ctx.resume().then(go).catch(() => {});
   }
-  function pauze() { stopLussen(); if (ctx) { zetVolume(true); setTimeout(() => { if (!aan || verborgen) ctx.suspend().catch(() => {}); }, 400); } }
+  function pauze() { stopLussen(); if (speler) setTimeout(() => { if (!aan || verborgen) speler.pause(); }, 400); if (ctx) { zetVolume(true); setTimeout(() => { if (!aan || verborgen) ctx.suspend().catch(() => {}); }, 400); } }
 
   // Browsers en Android laten pas geluid toe na een tik.
   const ontgrendel = () => { if (aan) speel(); };
@@ -147,9 +179,9 @@ window.MUZIEK = (() => {
 
   return {
     staat: () => ctx ? ctx.state : 'geen',
-    stuk: () => stuk ? stuk.naam : '',
+    stuk: () => speler && !speler.paused ? nummer : stuk ? stuk.naam : '',
     instel(a, v) { aan = !!a; vol = Math.max(0, Math.min(1, v)); aan ? speel() : pauze(); zetVolume(); },
     // Bij de overgang naar dag of nacht rondt het huidige stuk binnen twee akkoorden af; daarna volgt een stuk dat bij het uur past.
-    nacht(n) { n = !!n; if (n === nacht) return; nacht = n; if (stuk) lengte = Math.min(lengte, stap + 2); }
+    nacht(n) { n = !!n; if (n === nacht) return; nacht = n; wissel(); }
   };
 })();
