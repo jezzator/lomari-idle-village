@@ -97,7 +97,22 @@ window.DATA = (() => {
     act:   { n: 3,   tekst: n => `Gebruik ${n} keer een vaardigheid van een Lomari`, kan: S => Object.keys(S.lom || {}).length > 0 },
     tocht: { n: 1,   tekst: () => 'Stuur een Lomari op tocht', kan: S => !!S.star?.t1 },
     gave:  { n: 1,   tekst: () => 'Zet een gave van het woud in' },
+    bol:   { n: 1,   tekst: () => 'Vang een lichtbol', kan: S => (S.tel?.bolTot || 0) > 0 },
+    leg:   { n: 1,   tekst: () => 'Leg iets in het Bronwerk', kan: S => !!S.n.oudebron && S.fase.oudebron >= 5 && (S.bronwerk?.t || 0) < BRONWERK.max },
+    rune:  { n: 1,   tekst: () => 'Zet een rune in een gebouw', kan: S => Object.values(S.fase || {}).some(f => f >= 3) },
+    doorbreek: { n: 1, tekst: () => 'Laat een Lomari door een Band breken', kan: S => Object.values(S.lom || {}).some(l => l.band >= 30) },
+    open:  { n: 1,   tekst: () => 'Open een district', kan: S => Object.keys(DISTRICTS).some(d => !S.open.includes(d)) },
+    nachttik: { n: 50, tekst: n => `Tik ${n} keer op Verzamelen terwijl het nacht is` },
   };
+  // Weekdoel: één groter doel per week (vanaf maandag), beloning in Nova. Reeks: elke 7 dagen op rij alle drie dagdoelen = een Woudgave.
+  const WEEKDOEL = {
+    koop:  { n: 500,  tekst: n => `Bouw ${n} gebouwen` },
+    tik:   { n: 1000, tekst: n => `Tik ${n} keer op Verzamelen` },
+    fase:  { n: 5,    tekst: n => `Start ${n} keer een Upgrade naar een hogere fase` },
+    help:  { n: 100,  tekst: n => `Tik ${n} keer om te helpen bij een bosgebeurtenis of een bouwplaats` },
+    tocht: { n: 3,    tekst: n => `Stuur ${n} keer een Lomari op tocht`, kan: S => !!S.star?.t1 },
+  };
+  const WEEK_NOVA = 3, REEKS_DAGEN = 7;
   const BEPROEF_VANAF = 3;
   const BEPROEF = {
     verband: { naam: 'Losse draden',   tekst: 'Verbanden werken niet', beloning: 'Verband-bonussen +15%', fx: [{ t: 'verband', plus: .15 }] },
@@ -342,5 +357,5 @@ window.DATA = (() => {
     { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
   ];
 
-  return { DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { WEEKDOEL, WEEK_NOVA, REEKS_DAGEN, DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();
