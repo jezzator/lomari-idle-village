@@ -66,6 +66,22 @@ window.ART = (() => {
     return `<svg viewBox="0 0 64 64" aria-hidden="true">${!opslag && fase >= 4 ? glans(id) : ''}${schaduw}<g transform="translate(32 58) scale(${s}) translate(-32 -58)">${f(fase)}</g>${extra}</svg>`;
   }
 
+  // Slinger boven een district: groeit mee met de hoogste fase daar. Fase 2 lantaarns, 3 bloemen, 4 vaantjes, 5 sterrenlicht.
+  function slinger(fase, kleur) {
+    if (fase < 2) return '';
+    const n = 1 + fase, y = x => 5 + 16 * Math.sin(Math.PI * x / 200);
+    const groot = (x, yy, g) => `<g transform="translate(${x} ${yy}) scale(2) translate(${-x} ${-yy})">${g}</g>`;
+    let h = `<path d="M0 5 Q100 37 200 5" stroke="#2a1c10" stroke-width="3.4" fill="none"/><path d="M0 5 Q100 37 200 5" stroke="${H3}" stroke-width="1.8" fill="none"/>`;
+    for (let i = 1; i < n; i++) {
+      const x = i * 200 / n, yy = y(x);
+      if (fase >= 4 && i % 2 === 0) h += `<path d="M${x - 7} ${yy} h14 l-7 15z" fill="${kleur}" stroke="#f2e4c4" stroke-width="1.2"/>`;
+      else h += `<g class="lt">${groot(x, yy + 6, lantaarn(x, yy + 6))}</g>`;
+      if (fase >= 3) h += groot(x + 100 / n, y(x + 100 / n) + 1, bloem(x + 100 / n, y(x + 100 / n) + 1, i % 2 ? VIOL : '#e48ab0'));
+    }
+    if (fase >= 5) for (let i = 0; i < 6; i++) h += `<path class="ster" style="animation-delay:${i * .7}s" transform="translate(${20 + i * 32} ${30 + (i % 3) * 5}) scale(1.8)" d="M0 -4l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" fill="${GOUD}"/>`;
+    return `<svg viewBox="0 0 200 50" class="slinger f${fase}" aria-hidden="true">${h}</svg>`;
+  }
+
   // Districtsemblemen (wit op de districtskleur, zoals de banieren op de dorpsplaat)
   const E = {
     Takelom: '<path d="M6 18L16 8M18 18L8 8" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M3 9l5-5 3 3-5 5zM21 9l-5-5-3 3 5 5z" fill="#fff"/>',
@@ -97,5 +113,5 @@ window.ART = (() => {
   };
   const res = k => `<svg viewBox="0 0 16 16" class="ri" aria-hidden="true">${R[k] || ''}</svg>`;
 
-  return { gebouw, embleem, res, heeft: b => !!G[b] };
+  return { gebouw, slinger, embleem, res, heeft: b => !!G[b] };
 })();

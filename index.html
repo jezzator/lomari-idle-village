@@ -159,7 +159,7 @@ table{border-collapse:collapse;width:100%;font-size:14px;margin-top:8px}td,th{te
 .ico svg{width:56px;height:56px}.gb{grid-template-columns:56px minmax(0,1fr) auto}
 .gb.flits{animation:flits .7s ease-out}@keyframes flits{0%{background:#f2c46a66}100%{background:transparent}}
 .gb.groei .ico{animation:groei 1.2s ease-out}@keyframes groei{0%{filter:drop-shadow(0 0 0 #f2c46a);transform:scale(1)}40%{filter:drop-shadow(0 0 14px #f2c46a);transform:scale(1.25)}100%{filter:none;transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.spot.leeft::after,.stijg,.gb.flits,.gb.groei .ico{animation:none}}
+@media(prefers-reduced-motion:reduce){.wijk.groeit,.slinger .ster,.golf,.spot.leeft::after,.stijg,.gb.flits,.gb.groei .ico{animation:none}}
 #db h3{font-size:17px;margin:10px 0 2px}#db ul{margin:2px 0;padding-left:20px;font-size:14px}#db p{margin:6px 0}
 @media(max-width:380px){.rs .tijd{grid-row:4!important;grid-column:1/4!important;text-align:left!important}.rs{padding:3px}.rs b{font-size:12.5px}.rs small{font-size:9px}.rs .rn .ri{width:12px;height:12px}}
 @media(max-width:520px){.ico svg{width:44px;height:44px}.gb{grid-template-columns:44px minmax(0,1fr)}.banier{width:30px;height:38px}.spot .lmk img{width:18px;height:18px}}
@@ -177,6 +177,12 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 #gebieden{margin:0;flex:1 1 100%}
 #bouw{position:absolute;inset:0;pointer-events:none}
 #bouw svg{position:absolute;transform:translate(-50%,-100%);filter:drop-shadow(0 2px 3px #0009)}
+.wijk{position:absolute;display:block}#bouw .wijk svg.slinger{position:static;transform:none;width:100%;height:auto;filter:drop-shadow(0 1px 2px #000a)}
+.wijk.groeit{animation:wijkgroei 1.4s ease-out}@keyframes wijkgroei{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.06);opacity:1}100%{transform:none}}
+.slinger .ster{animation:fonkel 4.2s ease-in-out infinite;opacity:.2}@keyframes fonkel{50%{opacity:1}}
+.nacht .slinger .lt circle{opacity:.55}
+.golf{position:absolute;width:6%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:3px solid #f2c46a;box-shadow:0 0 24px #f2c46a;animation:golf 1.6s ease-out forwards;pointer-events:none}
+@keyframes golf{to{width:46%;opacity:0;border-width:1px}}
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:8;margin:0;padding:10px max(2vw,10px) max(8px,env(safe-area-inset-bottom));background:rgba(28,31,22,.97);border-top:1px solid var(--lijn);justify-content:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 #tabs button{flex:none}
 .lade{position:fixed;z-index:7;background:var(--perk);color:var(--inkt);box-shadow:-8px 0 30px #000a;display:flex;flex-direction:column;transition:transform .28s ease}
@@ -263,6 +269,7 @@ main#hoofd{display:block;max-width:none;padding:0;margin:0}
 <script src="engine.js"></script>
 <script src="balans.js"></script>
 <script src="muziek.js"></script>
+<script src="geluid.js"></script>
 <script src="ui.js"></script>
 <script>if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 </body></html>
