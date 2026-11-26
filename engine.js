@@ -15,7 +15,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
-      gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
+      reliek: prev ? prev.reliek || {} : {}, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -29,8 +29,8 @@ window.ENGINE = (() => {
 
   // ---------- Lomari: waar staan ze, welke verbindingen, welke Verbanden ----------
   const lomDef = id => LM.L.find(l => l.id === id);
-  const plek = (S, id) => { const l = S.lom[id]; if (!l) return null; if (l.reis > 0) return null; return l.d; };
-  const verbandPlek = (S, id) => { const l = S.lom[id]; if (!l || l.reis > 0) return null; return l.d || lomDef(id).d; };
+  const plek = (S, id) => { const l = S.lom[id]; if (!l) return null; if (l.reis > 0 || l.tocht) return null; return l.d; };
+  const verbandPlek = (S, id) => { const l = S.lom[id]; if (!l || l.reis > 0 || l.tocht) return null; return l.d || lomDef(id).d; };
   function verbindingen(S) {
     return LM.VERB.slice(0, LM.VERB_GRATIS + S.n.brug).filter(([a, b]) => S.open.includes(a) && S.open.includes(b));
   }
@@ -56,7 +56,7 @@ window.ENGINE = (() => {
       faseKost: 1, auto: {}, offline: BAL.offlineUren, magieMax: BAL.magieMax, start: {}, startOpen: [], faseMin: 0,
       verzamel: 1, capD: {}, capRes: {}, kostRes: {}, faseHoog: 1, ketenIn: 1, upKost: 1, offlineEff: 0, tev: {}, drukte: 0,
       verbandPlus: 0, verbind: 0, vondst: 0, vondstX: 1, licht: 0, lichtDuur: 1, lichtX: 1, reis: 1, rivier: false, novaX: 1,
-      magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10,
+      magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, tocht: 0, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10,
       herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {}, runeKost: 1, openWegen: false, ketenPlant: 1, tevAlle: 0 };
     const zet = (e, s = 1) => {               // s = sterkte (1 of 0,4); vermenigvuldigers schalen als 1 + (x−1)·s
       const sx = x => 1 + (x - 1) * s;
@@ -117,6 +117,7 @@ window.ENGINE = (() => {
       else if (e.t === 'runeKost') m.runeKost *= sx(e.x);
       else if (e.t === 'openWegen') m.openWegen = true;
       else if (e.t === 'ketenPlant') m.ketenPlant *= sx(e.x);
+      else if (e.t === 'tocht') m.tocht += e.plus;
       else if (e.t === 'bouwD') m.bouwD[e.d] = (m.bouwD[e.d] || 1) * sx(e.x);
     };
     const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...Object.keys(S.star).filter(k => S.star[k])];
@@ -128,6 +129,8 @@ window.ENGINE = (() => {
       const s = def.overal || d === def.d ? 1 : C.buiten;
       for (const e of def.pas(l.band, d)) zet(e, s);
     }
+    // Relieken van tochten: elke trede telt als één keer het effect
+    for (const [id, n] of Object.entries(S.reliek || {})) for (let i = 0; i < n; i++) for (const e of D.RELIEK[id][2]) zet(e);
     // Upgradebomen: gekochte knopen gelden altijd
     for (const id in S.lom || {}) for (const i of S.lom[id].boom || []) for (const e of LM.BOOM[id][i][2]) zet(e);
     // Actieve en ultieme vaardigheden die nu lopen
@@ -466,7 +469,7 @@ window.ENGINE = (() => {
     return '';
   }
   function wijs(S, id, d) {
-    const l = S.lom[id]; if (!l || l.d === d) return false;
+    const l = S.lom[id]; if (!l || l.d === d || l.tocht) return false;
     if (d && !S.open.includes(d)) return false;
     const m = mods(S);
     l.reis = l.d && d ? C.reisSec * m.reis : 0;   // van vrij naar een district of terug: direct; tussen districten: reistijd
@@ -477,10 +480,16 @@ window.ENGINE = (() => {
     for (const def of LM.L) if (!S.lom[def.id] && eisLomOk(S, def.eis, m)) { S.lom[def.id] = { d: S.open.includes(def.d) ? def.d : null, xp: 0, band: 1, reis: 0 }; ev.push({ t: 'nieuw', id: def.id }); }
     for (const id in S.lom) {
       const l = S.lom[id];
-      if (l.reis > 0) { l.reis = Math.max(0, l.reis - dt); continue; }
-      if (!l.d || l.band >= C.bandTop) continue;
-      const nGeb = BK.filter(b => B[b].d === l.d).reduce((a, b) => a + S.n[b], 0);
-      l.xp += dt / 3600 * C.xpPerUur * (1 + C.xpPerGebouw * nGeb);
+      if (l.tocht) {   // op tocht: groeit gewoon in Band, zonder bonus voor gebouwen
+        l.tocht.over -= dt;
+        if (l.band < C.bandTop) l.xp += dt / 3600 * C.xpPerUur;
+        if (l.tocht.over <= 0) ev.push(terug(S, id, m));
+      } else {
+        if (l.reis > 0) { l.reis = Math.max(0, l.reis - dt); continue; }
+        if (!l.d || l.band >= C.bandTop) continue;
+        const nGeb = BK.filter(b => B[b].d === l.d).reduce((a, b) => a + S.n[b], 0);
+        l.xp += dt / 3600 * C.xpPerUur * (1 + C.xpPerGebouw * nGeb);
+      }
       while (l.band < C.bandMax && l.xp >= xpNodig(l.band)) { l.xp -= xpNodig(l.band); l.band++; ev.push({ t: 'band', id, band: l.band }); }
       if (l.band >= C.bandMax) l.xp = Math.min(l.xp, xpNodig(l.band));
     }
@@ -499,6 +508,22 @@ window.ENGINE = (() => {
       else { S.lichtT += dt; if (S.lichtT >= m.licht) { S.lichtT = 0; S.bol = { x: 8 + Math.random() * 84, y: 10 + Math.random() * 78, over: C.lichtDuur * m.lichtDuur }; } }
     }
     return ev;
+  }
+  // Tochten: een Lomari gaat op pad en komt terug met buit en soms een reliek
+  const opTocht = S => Object.keys(S.lom || {}).filter(id => S.lom[id].tocht);
+  const tochtKan = (S, id, m = mods(S)) => { const l = S.lom[id]; return !!l && !l.tocht && opTocht(S).length < m.tocht; };
+  function stuur(S, id, soort) {
+    if (!D.TOCHT[soort] || !tochtKan(S, id)) return false;
+    const l = S.lom[id]; l.reis = 0; l.tocht = { soort, over: D.TOCHT[soort].sec }; return true;
+  }
+  function terug(S, id, m) {
+    const l = S.lom[id], T = D.TOCHT[l.tocht.soort], R = rates(S, m), buit = {};
+    l.tocht = null;
+    const thuis = LM.OPSLAG_D[lomDef(id).d] || [], soorten = thuis.length ? thuis : ['hout'];
+    for (const k of soorten) if (R.prod[k] > 0) buit[k] = vul(S, k, R.prod[k] * T.sec * T.buit, m, R);
+    const n = S.reliek[id] || 0; let reliek = false;
+    if (n < D.RELIEK_MAX && Math.random() < T.reliek) { S.reliek[id] = n + 1; reliek = true; }
+    return { t: 'tocht', id, soort: T.naam, buit, reliek, trede: S.reliek[id] || 0 };
   }
   function kiesVondst(S, i, keuze) {
     const v = S.vondsten[i]; if (!v) return null;
@@ -606,7 +631,7 @@ window.ENGINE = (() => {
     magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
-    actKan, gebruik, doorbreekKan, doorbreek,
+    actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
     runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };
