@@ -4,4 +4,5 @@ rmSync('www', { recursive: true, force: true }); mkdirSync('www');
 const mee = f => /\.(html|js|jpg|png|webmanifest)$/.test(f) && f !== 'sw.js';
 for (const f of readdirSync('.')) if (mee(f)) cpSync(f, 'www/' + f);
 cpSync('portret', 'www/portret', { recursive: true });
+cpSync('muziek', 'www/muziek', { recursive: true });
 console.log('www klaar');

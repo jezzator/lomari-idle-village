@@ -47,6 +47,39 @@ window.DATA = (() => {
     bloei: { naam: 'Bloeigave', x: 3, sec: 600,  koop: ['wortelgloed', 15], tekst: 'Een bloesem die maar één nacht openstaat. Alle productie ×3, 10 minuten.' },
     woud:  { naam: 'Woudgave',  x: 2, sec: 3600, koop: ['nova', 3], tekst: 'Een zaad uit het diepe woud. Alle productie ×2, 1 uur.' },
   };
+  // Tochten (deel C): een Lomari gaat buiten het dorp op pad. Onderweg geen gave en geen Verbanden, wel Band-groei.
+  // Terug met buit (een deel van de duur aan productie van het eigen district) en soms een reliek. Tochten lopen ook offline door.
+  const TOCHT = {
+    kort: { naam: 'Korte tocht', sec: 3600,  reliek: .08, buit: .5 },
+    lang: { naam: 'Lange tocht', sec: 10800, reliek: .3,  buit: .5 },
+    ver:  { naam: 'Verre tocht', sec: 28800, reliek: 1,   buit: .5 },
+  };
+  // Relieken: één per Lomari, tot RELIEK_MAX treden. Blijven na Hergroei. fx geldt per trede.
+  const RELIEK_MAX = 5;
+  const RELIEK = {
+    melo:   ['Oude kaart',        'Vondstkans +0,5%',                    [{ t: 'vondst', plus: .005 }]],
+    tiku:   ['Windveer',          'Verzamelen +10%',                     [{ t: 'verzamel', x: 1.1 }]],
+    beki:   ['Kiemzaad',          'Bladeren, lianen en voedsel +4%',     ['bladeren', 'lianen', 'voedsel'].map(res => ({ t: 'prod', res, x: 1.04 }))],
+    koro:   ['Kernhout',          'Alle opslag +4%',                     [{ t: 'opslag', x: 1.04 }]],
+    varo:   ['Trilsteen',         'Steen +5%',                           [{ t: 'prod', res: 'steen', x: 1.05 }]],
+    piko:   ['Lichtschelp',       'Lichtbollen +10% buit',               [{ t: 'lichtX', duur: 1, x: 1.1 }]],
+    brakka: ['Zware kei',         'Bouwtijd −4%',                        [{ t: 'bouwX', x: .96 }]],
+    sora:   ['Droomveer',         'Tevredenheid +1 in alle districten',  [{ t: 'tevAlle', plus: 1 }]],
+    liri:   ['Helend mos',        'Gebeurtenissen 5% korter',            [{ t: 'herstel', x: .95 }]],
+    niko:   ['Schildblad',        'Kans op bosgebeurtenissen −4%',       [{ t: 'gebKans', x: .96 }]],
+    nira:   ['Stroomsteen',       'Ketens verbruiken −3% input',         [{ t: 'ketenIn', x: .97 }]],
+    ori:    ['Herinneringskraal', 'Upgrades −2%',                        [{ t: 'upKost', x: .98 }]],
+    droki:  ['Zweefsteen',        'Gereedschap +5%',                     [{ t: 'prod', res: 'gereedschap', x: 1.05 }]],
+    seli:   ['Bindkoord',         'Verband-bonussen +3%',                [{ t: 'verband', plus: .03 }]],
+    elomi:  ['Symboolsteen',      'Kristallen +5%',                      [{ t: 'prod', res: 'kristal', x: 1.05 }]],
+    yomi:   ['Nachtoog',          'Offline-opbrengst +2%',               [{ t: 'offlineEff', plus: .02 }]],
+    kavo:   ['Doorgangssteen',    'Reistijd −8%',                        [{ t: 'reis', x: .92 }]],
+    veyra:  ['Bronsteen',         'Hergroei +2% Nova',                   [{ t: 'nova', x: 1.02 }]],
+  };
+  // Bronwerk (deel C): staat De oude bron op fase 5, dan neemt hij zeldzame grondstoffen op. Wat je inlegt blijft bewaard,
+  // ook na Hergroei, dus een trede mag over meerdere rondes lopen. Elke trede +8% op alle productie; elke 5e trede ook +5% Nova.
+  const BRONWERK = { max: 20, prod: .08, nova: .05, novaElk: 5, groei: 1.35, kost: { nevelparel: 40, kroonhars: 30, wortelgloed: 12 } };
+  const bronwerkKost = t => Object.fromEntries(Object.entries(BRONWERK.kost).map(([k, v]) => [k, Math.ceil(v * BRONWERK.groei ** t)]));
   const GAVE_MAX = 5, GAVE_START = { groei: 2 }, GAVE_GEBKANS = .25, GAVE_KOOPGROEI = 1.5;   // elke aankoop ×1,5 duurder; terug naar begin bij Hergroei
   // Runen (deel B): één per gebouw vanaf fase 3, gemaakt van Kristallen. De prijs stijgt met elke rune die je al hebt. Verdwijnen bij Hergroei.
   const RUNE = {
@@ -241,7 +274,9 @@ window.DATA = (() => {
     { id: 'n1', tak: 'Nieuwe gebieden', naam: 'Valunari', tekst: 'Opent de watervallen onder het dorp: Valwaterrad (gereedschap zonder verbruik) en Nevelvangers (Nevelparels)', k: 20, fx: [{ t: 'startOpen', d: 'Valunari' }] },
     { id: 'n2', tak: 'Nieuwe gebieden', naam: 'Kroveli', tekst: 'Opent de kronen boven de oude boom: Harstappers (Kroonhars, nodig voor fase 5) en Lichtvangers (energie)', k: 60, eis: 'n1', fx: [{ t: 'startOpen', d: 'Kroveli' }] },
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
+    { id: 't1', tak: 'Verre paden', naam: 'Verre paden', tekst: 'Lomari kunnen op tocht buiten het dorp: terug met buit en soms een reliek dat blijft', k: 40, eis: 'n1', fx: [{ t: 'tocht', plus: 1 }] },
+    { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
   ];
 
-  return { GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();
