@@ -285,6 +285,41 @@ window.DATA = (() => {
     { id: 'l18',   naam: 'Alle 18 Lomari verzameld', test: s => s.lomari >= 18 },
     { id: 'n1',    naam: 'Eerste Hergroei',          test: s => s.runs >= 1 },
     { id: 'n100',  naam: '100 Nova',                 test: s => s.nova >= 100 },
+    // Dorp
+    { id: 'b2500', naam: '2.500 gebouwen',           test: s => s.tot >= 2500 },
+    { id: 'b5000', naam: '5.000 gebouwen',           test: s => s.tot >= 5000 },
+    { id: 'df5',   naam: 'Zeven meesterwerken: in elk district een gebouw op fase 5', test: s => s.f5d >= 7 },
+    { id: 'bew1k', naam: '1.000 bewoners',           test: s => s.bedden >= 1000 },
+    { id: 'h10m',  naam: 'Tien miljoen hout',        test: s => s.hout >= 1e7 },
+    { id: 'h1g',   naam: 'Een miljard hout',         test: s => s.hout >= 1e9 },
+    // Lomari
+    { id: 'band20', naam: 'Een Lomari op Band 20',   test: s => s.band >= 20 },
+    { id: 'band50', naam: 'Een Lomari op Band 50',   test: s => s.band >= 50 },
+    { id: 'toc25', naam: '25 tochten volbracht',     test: s => s.t.tochtTot >= 25 },
+    { id: 'ver10', naam: 'Tien verre tochten',       test: s => s.t.verTot >= 10 },
+    { id: 'rel5',  naam: 'Een reliek op trede V',    test: s => s.reliek >= 5 },
+    { id: 'vball', naam: 'Alle Verbanden tegelijk actief', test: s => s.verbandAlle },
+    // Woud
+    { id: 'geb25', naam: '25 bosgebeurtenissen doorstaan',  test: s => s.t.gebTot >= 25 },
+    { id: 'geb100',naam: '100 bosgebeurtenissen doorstaan', test: s => s.t.gebTot >= 100 },
+    { id: 'bol50', naam: '50 lichtbollen gevangen',  test: s => s.t.bolTot >= 50 },
+    { id: 'bol250',naam: '250 lichtbollen gevangen', test: s => s.t.bolTot >= 250 },
+    { id: 'nacht10', naam: 'Tien nachten doorgemaakt', test: s => s.t.nachtTot >= 10 },
+    { id: 'gave25', naam: '25 gaven ingezet',        test: s => s.t.gave >= 25 },
+    // Sterrenstam
+    { id: 'n5',    naam: 'Vijf keer Hergroei',       test: s => s.runs >= 5 },
+    { id: 'n10',   naam: 'Tien keer Hergroei',       test: s => s.runs >= 10 },
+    { id: 'n500',  naam: '500 Nova',                 test: s => s.nova >= 500 },
+    { id: 'n1000', naam: '1.000 Nova',               test: s => s.nova >= 1000 },
+    { id: 'stam',  naam: 'De volle Sterrenstam',     test: s => s.stamVol },
+    { id: 'jaar1', naam: 'Eerste Jaarring',          test: s => s.jaar >= 1 },
+    { id: 'bep5',  naam: 'Alle vijf Beproevingen doorstaan', test: s => s.beproef >= 5 },
+    { id: 'bron10',naam: 'Bronwerk trede 10',        test: s => s.bron >= 10 },
+    { id: 'bron20',naam: 'Bronwerk trede 20',        test: s => s.bron >= 20 },
+    // Verborgen: zichtbaar zodra je ze haalt
+    { id: 'snel',  naam: 'Snelle groei: Hergroei binnen 24 uur', verborgen: true, test: s => s.t.snel >= 1 },
+    { id: 'nachtuil', naam: 'Nachtuil: 100 tikken in één nacht', verborgen: true, test: s => s.t.nachtTikMax >= 100 },
+    { id: 'nachtbol', naam: 'Licht in het donker: een lichtbol gevangen in de nacht', verborgen: true, test: s => s.t.nachtBol >= 1 },
   ];
 
   // Sterrenstam (v1): Wortels, Gewoonte, Oude magie. Nieuwe gebieden volgen.

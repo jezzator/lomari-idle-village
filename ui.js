@@ -426,7 +426,7 @@ function doelHTML() {
 function paneelPrest() {
   const n = E.achAantal(S);
   return doelHTML() + `<h2 style="margin:6px 0">Prestaties</h2><p class="intro">${n} van ${D.ACH.length} behaald. Elke prestatie geeft +1% op alle productie.</p>` +
-    D.ACH.map(a => `<div class="ach${S.ach[a.id] ? ' heb' : ''}"><span>${S.ach[a.id] ? '✓' : ''}</span>${a.naam}</div>`).join('');
+    D.ACH.map(a => `<div class="ach${S.ach[a.id] ? ' heb' : ''}"><span>${S.ach[a.id] ? '✓' : ''}</span>${a.verborgen && !S.ach[a.id] ? '<i>Verborgen prestatie</i>' : a.naam}</div>`).join('');
 }
 function paneelInstel() {
   const m = E.mods(S);
@@ -590,7 +590,7 @@ $('#verzamel').onclick = () => {
   const ritme = E.mods(S).ritme && tikTijden.length >= 10; if (ritme) tikTijden = [];
   const uit = E.verzamel(S, 1, ritme ? 4 : 1), f = document.createElement('span'); f.className = 'zweef' + (ritme ? ' ritme' : '');
   f.innerHTML = (ritme ? '<b>Ritme ×4</b> ' : '') + Object.entries(uit).filter(([, v]) => v > 0).map(([k, v]) => `${ico(k)}+${fmt(v)}`).join(' ');
-  E.tel(S, 'tik'); $('#verzamel').after(f); setTimeout(() => f.remove(), 900); klank(ritme ? 'ritme' : 'tik'); ververs();
+  E.tel(S, 'tik'); if (E.isNacht(S)) { S.nachtTik = (S.nachtTik || 0) + 1; S.tel.nachtTikMax = Math.max(S.tel.nachtTikMax || 0, S.nachtTik); } $('#verzamel').after(f); setTimeout(() => f.remove(), 900); klank(ritme ? 'ritme' : 'tik'); ververs();
 };
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;

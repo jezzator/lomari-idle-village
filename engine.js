@@ -540,6 +540,7 @@ window.ENGINE = (() => {
   }
   function terug(S, id, m) {
     const l = S.lom[id], T = D.TOCHT[l.tocht.soort], R = rates(S, m), buit = {};
+    tel(S, 'tochtTot'); if (l.tocht.soort === 'ver') tel(S, 'verTot');
     l.tocht = null;
     const thuis = LM.OPSLAG_D[lomDef(id).d] || [], soorten = thuis.length ? thuis : ['hout'];
     for (const k of soorten) if (R.prod[k] > 0) buit[k] = vul(S, k, R.prod[k] * T.sec * T.buit, m, R);
@@ -566,7 +567,7 @@ window.ENGINE = (() => {
     return { buit: uit };
   }
   function vangBol(S) {
-    if (!S.bol) return null; S.bol = null;
+    if (!S.bol) return null; S.bol = null; tel(S, 'bolTot'); if (isNacht(S)) tel(S, 'nachtBol');
     const m = mods(S), R = rates(S, m), opt = RK.filter(k => R.prod[k] > 0); if (!opt.length) return null;
     const k = opt[Math.floor(Math.random() * opt.length)], v = R.prod[k] * C.lichtBuitSec * m.lichtX;
     return { res: k, v: vul(S, k, v, m, R) };
@@ -593,9 +594,9 @@ window.ENGINE = (() => {
   function wereld(S, dt, m = mods(S)) {
     const ev = [], wasNacht = isNacht(S);
     S.klok = (S.klok || 0) + dt; S.geb = S.geb || [];
-    if (isNacht(S) !== wasNacht) ev.push({ t: isNacht(S) ? 'nacht' : 'dag' });
+    if (isNacht(S) !== wasNacht) { ev.push({ t: isNacht(S) ? 'nacht' : 'dag' }); if (isNacht(S)) { tel(S, 'nachtTot'); S.nachtTik = 0; } }
     for (const g of S.geb) g.over -= dt;
-    for (const g of S.geb.filter(g => g.over <= 0)) { ev.push({ t: 'gebKlaar', g }); if (Math.random() < D.GAVE_GEBKANS) geefGave(S, 'bloei'); }
+    for (const g of S.geb.filter(g => g.over <= 0)) { ev.push({ t: 'gebKlaar', g }); tel(S, 'gebTot'); if (Math.random() < D.GAVE_GEBKANS) geefGave(S, 'bloei'); }
     S.geb = S.geb.filter(g => g.over > 0);
     S.gebT = (S.gebT || 0) + dt;
     while (S.gebT >= BAL.gebSec) {
@@ -606,14 +607,18 @@ window.ENGINE = (() => {
   }
   function help(S, k) {   // tikken op een gebeurtenis helpt: elke tik haalt een paar seconden van de duur af
     const g = (S.geb || []).find(g => g.k === k); if (!g) return null;
-    g.over -= BAL.helpSec; if (g.over <= 0) { S.geb = S.geb.filter(x => x !== g); if (Math.random() < D.GAVE_GEBKANS) geefGave(S, 'bloei'); return { klaar: true, g }; }
+    g.over -= BAL.helpSec; if (g.over <= 0) { S.geb = S.geb.filter(x => x !== g); tel(S, 'gebTot'); if (Math.random() < D.GAVE_GEBKANS) geefGave(S, 'bloei'); return { klaar: true, g }; }
     return { klaar: false, g };
   }
 
   function stats(S) {
     const m = mods(S);
     return { tot: totaal(S), bedden: bedden(S, m), open: echteOpen(S), gebieden: S.open.length - echteOpen(S), maxFase: Math.max(...BK.map(b => S.fase[b])),
-      hout: S.houtTot, magie: S.magie, runs: S.runs, nova: S.nova, lomari: Object.keys(S.lom).length, tikken: S.tikken || 0 };
+      hout: S.houtTot, magie: S.magie, runs: S.runs, nova: S.nova, lomari: Object.keys(S.lom).length, tikken: S.tikken || 0,
+      t: S.tel || {}, jaar: S.jaar || 0, bron: S.bronwerk?.t || 0, beproef: Object.keys(S.beproefKlaar || {}).length,
+      f5d: Object.keys(D.DISTRICTS).filter(d => BK.some(b => B[b].d === d && S.n[b] > 0 && S.fase[b] >= 5)).length,
+      band: Math.max(0, ...Object.values(S.lom).map(l => l.band || 0)), reliek: Math.max(0, ...Object.values(S.reliek || {})),
+      verbandAlle: m.verbanden.length >= LM.V.length, stamVol: (S.jaar || 0) > 0 || D.STAR.every(x => S.star[x.id]) };
   }
   // ---------- Dagelijkse doelen ----------
   const tel = (S, k, n = 1) => { S.tel = S.tel || {}; S.tel[k] = (S.tel[k] || 0) + n; };
@@ -658,6 +663,7 @@ window.ENGINE = (() => {
   }
   function hergroei(S, beproef = null) {
     const n = novaWacht(S); if (n < 1) return null;
+    if (Date.now() - (S.rondeStart || Date.now()) < 864e5) tel(S, 'snel');
     const klaar = S.beproef ? { ...S.beproefKlaar, [S.beproef]: true } : S.beproefKlaar;   // ronde gehaald: beloning voor altijd
     const volgende = beproef && D.BEPROEF[beproef] && beproefOpen(S) ? beproef : null;
     const T = nieuw({ ...S, nova: S.nova + n, runs: S.runs + 1, beproefKlaar: klaar, beproefVolgende: volgende }); for (let i = 0; i < 2; i++) geefGave(T, 'woud'); T.gaveNieuw = []; return T;
