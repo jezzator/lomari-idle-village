@@ -254,6 +254,10 @@ function paneelUpgrades() {
     if (klaar) h += `<p class="gekocht">✓ Gekocht: ${D.U.filter(u => u.cat === c && S.up[u.id]).map(u => `${u.naam} (${u.tekst})`).join(' · ')}</p>`;
   }
   const stapT = String(D.AMB.stap).replace('.', ',');
+  h += `<h2>Woudkennis</h2><p class="intro">Vier ladders zonder einde, betaald met Flohara-energie. Elke trede is tien keer zo duur. Bij Hergroei begin je weer bij 0.</p>`;
+  if (!E.kennisOpen(S)) h += `<div class="up slot"><div><h3>Woudkennis</h3><p>Productie, opslag, verzamelen en bouwtijd</p><p class="eis">Vereist: Voelari open</p></div></div>`;
+  else for (const [k, x] of Object.entries(D.KENNIS)) { const t = S.kennis?.[k] || 0;
+    h += `<div class="up"><div><h3>${x.naam} ${t + 1}</h3><p class="wat">${x.tekst} (nu ${t} ${t === 1 ? 'trede' : 'treden'})</p><p class="kost">${kost({ energie: E.kennisKost(S, k) })}</p></div><button class="knop" data-kennis="${k}"${E.kan(S, { energie: E.kennisKost(S, k) }) ? '' : ' disabled'}>Koop</button></div>`; }
   h += `<h2>Ambachten</h2><p class="intro">Per grondstof een ladder. Elke trede maakt die grondstof ×${stapT}. Je betaalt vooral in de grondstof zelf; dure treden passen alleen in een grote opslag. Bij Hergroei begin je weer bij 0.</p>`;
   for (const k of E.RK) {
     if (RES[k].zeldzaam && !S.open.includes(RES[k].zeldzaam)) continue;
@@ -419,7 +423,7 @@ function doelen() {   // dag bijhouden en net voltooide doelen melden
 function doelBadge() { const n = (S.dag?.doelen || []).filter(d => !d.op && E.doelKlaar(S, d)).length + (S.week && !S.week.op && E.doelKlaar(S, S.week) ? 1 : 0), el = $('#dln'); if (el && el.textContent !== String(n || '')) el.textContent = n || ''; }
 function doelHTML() {
   const dag = E.dagDoelen(S, vandaag());
-  return `<div class="kaart"><h2>Doelen van vandaag</h2><p>Elk gehaald doel geeft een Groeigave. Haal je alle drie, dan krijg je er een Bloeigave bij. Morgen staan er nieuwe doelen klaar.</p>` +
+  return `<div class="kaart"><h2>Doelen van vandaag</h2><p>Elk gehaald doel geeft een Groeigave. Haal je ze allemaal, dan krijg je er een Bloeigave bij. Morgen staan er nieuwe doelen klaar.</p>` +
     dag.doelen.map((d, i) => { const st = E.doelStand(S, d), klaar = st >= d.n;
       return `<div class="doel${d.op ? ' heb' : ''}"><div><b>${D.DOEL[d.k].tekst(d.n)}</b><div class="bar"><i style="width:${st / d.n * 100}%"></i></div><small>${fmt(st)} / ${fmt(d.n)}</small></div>${d.op ? '<span class="nb">✓ Opgehaald</span>' : `<button class="knop klein" data-doel="${i}"${klaar ? '' : ' disabled'}>Haal gave</button>`}</div>`; }).join('') +
     (dag.bonus ? `<p class="nb">Alle doelen gehaald${dag.reeksGave ? ', en een Woudgave voor je reeks' : ''}. Tot morgen.</p>` : '') +
@@ -459,7 +463,7 @@ function paneelInstel() {
 }
 
 function maakSig() {
-  return JSON.stringify([tab, sel, modus, tab === 'prest' ? S.tel : 0, S.dag?.doelen.map(d => d.op).join(), S.week?.op, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, !!S.gaveAan, S.star, S.nova, S.novaUit,
+  return JSON.stringify([tab, sel, modus, tab === 'prest' ? S.tel : 0, S.dag?.doelen.map(d => d.op).join(), S.week?.op, S.kennis, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, !!S.gaveAan, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
     Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.beproef, S.beproefKlaar, S.jaar, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
 }
@@ -624,6 +628,7 @@ $('#paneel').addEventListener('click', e => {
   else if (d.open) { if (E.openDistrict(S, d.open)) { E.tel(S, 'open'); toast(`${d.open} is open`); after(); } }
   else if (d.up) { if (E.koopUpgrade(S, d.up)) { klank('upgrade'); after(); } }
   else if (d.magie) { if (E.koopMagie(S)) { klank('upgrade'); after(); } }
+  else if (d.kennis) { if (E.koopKennis(S, d.kennis)) { klank('upgrade'); after(); } }
   else if (d.amb) { if (E.koopAmb(S, d.amb)) { klank('upgrade'); after(); } }
   else if (d.star) { if (E.koopStar(S, d.star)) { klank('upgrade'); after(); } }
   else if (d.vondst) { const r = E.kiesVondst(S, +d.vondst, d.keuze); if (r?.bonus) toast(`Blijvend +1% ${RES[r.bonus].naam.toLowerCase()}`); else if (r) toast('Buit binnengehaald'); after(); }

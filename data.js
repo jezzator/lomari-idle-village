@@ -113,6 +113,14 @@ window.DATA = (() => {
     tocht: { n: 3,    tekst: n => `Stuur ${n} keer een Lomari op tocht`, kan: S => !!S.star?.t1 },
   };
   const WEEK_NOVA = 3, REEKS_DAGEN = 7;
+  // Woudkennis: vier ladders zonder einde, betaald met Flohara-energie, terug naar nul bij Hergroei.
+  const KENNIS_GROEI = 10;
+  const KENNIS = {
+    prod:   { naam: 'Kennis van groei',   tekst: 'Alle productie +5% per trede',   basis: 1000, fx: t => ({ t: 'alles', x: 1 + .05 * t }) },
+    opslag: { naam: 'Kennis van ruimte',  tekst: 'Opslag +15% per trede',          basis: 500,  fx: t => ({ t: 'opslag', x: 1 + .15 * t }) },
+    tik:    { naam: 'Kennis van handen',  tekst: 'Verzamelen +25% per trede',      basis: 300,  fx: t => ({ t: 'tikX', x: 1 + .25 * t }) },
+    bouw:   { naam: 'Kennis van bouwen',  tekst: 'Bouwtijd −5% per trede',         basis: 800,  fx: t => ({ t: 'bouwX', x: .95 ** t }) },
+  };
   const BEPROEF_VANAF = 3;
   const BEPROEF = {
     verband: { naam: 'Losse draden',   tekst: 'Verbanden werken niet', beloning: 'Verband-bonussen +15%', fx: [{ t: 'verband', plus: .15 }] },
@@ -244,6 +252,19 @@ window.DATA = (() => {
     { id: 'smidsr',   cat: 'A', naam: 'Smidsritme van Frikto',  tekst: 'Alle productie in Frikto ×1,5',    k: { hout: 200000, steen: 50000, gereedschap: 5000 }, eis: { b: ['smidse', 10] }, fx: [{ t: 'prod', d: 'Frikto', x: 1.5 }] },
     { id: 'samenz',   cat: 'A', naam: 'Samenzang van Voelari',  tekst: 'Alle productie in Voelari ×1,5',   k: { bladeren: 150000, lianen: 40000, kristal: 500, energie: 200 }, eis: { b: ['ontmoet', 10] }, fx: [{ t: 'prod', d: 'Voelari', x: 1.5 }] },
     { id: 'diepte',   cat: 'A', naam: 'Stem van de diepte',     tekst: 'Alle productie in Valunari, Kroveli en Lomaruun ×1,5', k: { steen: 500000, gereedschap: 20000, kristal: 2000 }, eis: { d: 'Lomaruun' }, fx: [{ t: 'prod', d: 'Valunari', x: 1.5 }, { t: 'prod', d: 'Kroveli', x: 1.5 }, { t: 'prod', d: 'Lomaruun', x: 1.5 }] },
+    // Derde trappen: laat in een ronde, ×1,5 bovenop de tweede trap
+    { id: 'kroonzaag', cat: 'A', naam: 'Kroonzagen',          tekst: 'Hout ×1,5',          k: { hout: 2e6, steen: 2e5, gereedschap: 2e4 }, eis: { u: ['zaagtand'], b: ['zaag', 100] }, fx: [{ t: 'prod', res: 'hout', x: 1.5 }] },
+    { id: 'bladweef',  cat: 'A', naam: 'Bladweverij',         tekst: 'Bladeren ×1,5',      k: { hout: 1e6, bladeren: 6e5 }, eis: { u: ['dauw'], b: ['hangtuin', 75] }, fx: [{ t: 'prod', res: 'bladeren', x: 1.5 }] },
+    { id: 'lianbrug',  cat: 'A', naam: 'Lianenbruggen',       tekst: 'Lianen ×1,5',        k: { hout: 1e6, lianen: 3e5 }, eis: { u: ['hangkw'], b: ['liaan', 100] }, fx: [{ t: 'prod', res: 'lianen', x: 1.5 }] },
+    { id: 'oogstfeest',cat: 'A', naam: 'Oogstfeest',          tekst: 'Voedsel ×1,5',       k: { hout: 8e5, bladeren: 6e5 }, eis: { u: ['bessenr'], b: ['bessen', 100] }, fx: [{ t: 'prod', res: 'voedsel', x: 1.5 }] },
+    { id: 'diepsteen', cat: 'A', naam: 'Diepe aders',         tekst: 'Steen ×1,5',         k: { hout: 2e6, steen: 5e5 }, eis: { u: ['splijt'], b: ['tunnel', 75] }, fx: [{ t: 'prod', res: 'steen', x: 1.5 }] },
+    { id: 'meesters',  cat: 'A', naam: 'Meestersmeden',       tekst: 'Gereedschap ×1,5',   k: { hout: 3e6, steen: 8e5, gereedschap: 5e4 }, eis: { u: ['hamer'], b: ['smidse', 75] }, fx: [{ t: 'prod', res: 'gereedschap', x: 1.5 }] },
+    { id: 'kristlied', cat: 'A', naam: 'Kristallied',         tekst: 'Kristallen ×1,5',    k: { steen: 2e6, kristal: 2e4 }, eis: { u: ['gehoor'], b: ['kristgrot', 75] }, fx: [{ t: 'prod', res: 'kristal', x: 1.5 }] },
+    { id: 'nachtkoor', cat: 'A', naam: 'Nachtkoor',           tekst: 'Flohara-energie ×1,5', k: { bladeren: 3e6, kristal: 1e4, energie: 1e4 }, eis: { u: ['koor'], b: ['ontmoet', 50] }, fx: [{ t: 'prod', res: 'energie', x: 1.5 }] },
+    { id: 'nevelnet',  cat: 'A', naam: 'Nevelnetten',         tekst: 'Nevelparels ×1,5',   k: { lianen: 2e6, gereedschap: 1e5 }, eis: { b: ['nevel', 25] }, fx: [{ t: 'prod', res: 'nevelparel', x: 1.5 }] },
+    { id: 'harsgoot',  cat: 'A', naam: 'Harsgoten',           tekst: 'Kroonhars ×1,5',     k: { hout: 1e7, gereedschap: 2e5 }, eis: { b: ['harst', 25] }, fx: [{ t: 'prod', res: 'kroonhars', x: 1.5 }] },
+    { id: 'gloedader', cat: 'A', naam: 'Gloedaders',          tekst: 'Wortelgloed ×1,5',   k: { steen: 1e7, kristal: 1e5 }, eis: { b: ['wortelk', 25] }, fx: [{ t: 'prod', res: 'wortelgloed', x: 1.5 }] },
+    { id: 'woudlied',  cat: 'A', naam: 'Lied van het hele woud', tekst: 'Alle productie ×1,25', k: { hout: 5e7, steen: 1e7, energie: 1e5 }, eis: { u: ['kroonzaag', 'bladweef', 'lianbrug', 'oogstfeest', 'diepsteen', 'meesters', 'kristlied', 'nachtkoor', 'nevelnet', 'harsgoot', 'gloedader'] }, fx: [{ t: 'alles', x: 1.25 }] },
     { id: 'licht1',   cat: 'B', naam: 'Lichte constructie',     tekst: 'Alle bouwprijzen −10%',            k: { hout: 2000, lianen: 500 }, eis: { tot: 50 }, fx: [{ t: 'kost', x: .9 }] },
     { id: 'licht2',   cat: 'B', naam: 'Gedeelde mallen',        tekst: 'Alle bouwprijzen nog eens −10%',   k: { hout: 50000, steen: 5000, gereedschap: 500 }, eis: { u: ['licht1'], d: 'Frikto' }, fx: [{ t: 'kost', x: .9 }] },
     { id: 'kelders',  cat: 'B', naam: 'Ruime kelders',          tekst: 'Alle opslag ×1,25',                k: { hout: 5000, steen: 1000 }, eis: { d: 'Dorukha' }, fx: [{ t: 'opslag', x: 1.25 }] },
@@ -355,7 +376,16 @@ window.DATA = (() => {
     { id: 'n3', tak: 'Nieuwe gebieden', naam: 'Lomaruun', tekst: 'Opent het wortelhart: Wortelkamer (Wortelgloed) en De oude bron, die na elke Hergroei een fase groeit', k: 150, eis: 'n2', fx: [{ t: 'startOpen', d: 'Lomaruun' }] },
     { id: 't1', tak: 'Verre paden', naam: 'Verre paden', tekst: 'Lomari kunnen op tocht buiten het dorp: terug met buit en soms een reliek dat blijft', k: 40, eis: 'n1', fx: [{ t: 'tocht', plus: 1 }] },
     { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
+    // Extra takken: niet nodig voor de Jaarring (extra: true)
+    { id: 'dn1', tak: 'Dag en nacht', extra: true, naam: 'Nachtwerk',      tekst: "Tikken levert 's nachts ×2 op in plaats van ×1,5", k: 15, fx: [{ t: 'nachtTik', x: 2 / 1.5 }] },
+    { id: 'dn2', tak: 'Dag en nacht', extra: true, naam: 'Lichtzoekers',   tekst: 'Lichtbollen verschijnen twee keer zo vaak', k: 30, eis: 'dn1', fx: [{ t: 'lichtVaak', x: 2 }] },
+    { id: 'dn3', tak: 'Dag en nacht', extra: true, naam: 'Wakers',         tekst: 'Bosgebeurtenissen duren 30% korter', k: 50, eis: 'dn1', fx: [{ t: 'herstel', x: .7 }] },
+    { id: 'dn4', tak: 'Dag en nacht', extra: true, naam: 'Lange bloei',    tekst: 'Gaven van het woud duren 10% langer', k: 80, eis: 'dn2', fx: [{ t: 'gaveDuur', x: 1.1 }] },
+    { id: 'gm1', tak: 'Gemeenschap', extra: true, naam: 'Ruime nesten',    tekst: 'Woningen bieden 25% meer bewoners', k: 20, fx: [{ t: 'bedX', x: 1.25 }] },
+    { id: 'gm2', tak: 'Gemeenschap', extra: true, naam: 'Dorpsraad',       tekst: 'Elke dag een vierde dagdoel', k: 40, eis: 'gm1', fx: [{ t: 'doelPlus', plus: 1 }] },
+    { id: 'gm3', tak: 'Gemeenschap', extra: true, naam: 'Gidsen',          tekst: 'Nog een Lomari tegelijk op tocht', k: 60, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
+    { id: 'gm4', tak: 'Gemeenschap', extra: true, naam: 'Samen bouwen',    tekst: 'Upgrades naar een hogere fase 20% goedkoper', k: 100, eis: 'gm2', fx: [{ t: 'faseKost', x: .8 }] },
   ];
 
-  return { WEEKDOEL, WEEK_NOVA, REEKS_DAGEN, DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { KENNIS, KENNIS_GROEI, WEEKDOEL, WEEK_NOVA, REEKS_DAGEN, DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

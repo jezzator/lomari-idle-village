@@ -16,6 +16,7 @@ window.BALANS = (() => {
     for (const u of D.U) if (!S.up[u.id] && E.eisOk(S, u.eis)) o.push({ t: 'upgrade', id: u.id, c: E.upKost(S, u) });
     if (E.magieOpen(S)) o.push({ t: 'magie', c: E.magieKost(S) });
     for (const k of E.RK) if (E.ambOpen(S, k) && E.ambTrede(S, k) < E.ambMax(k)) o.push({ t: 'amb', id: k, c: E.ambKost(S, k) });
+    if (E.kennisOpen(S)) for (const k in D.KENNIS) o.push({ t: 'kennis', id: k, c: { energie: E.kennisKost(S, k) } });
     for (const b of E.BK) if (B[b].p && S.n[b] > 0 && S.fase[b] >= D.runeFase && !S.rune?.[b]) o.push({ t: 'rune', id: b, c: E.runeKost(S, 'groei') });
     return o;
   }
@@ -75,6 +76,7 @@ window.BALANS = (() => {
     if (o.t === 'upgrade') return E.koopUpgrade(S, o.id);
     if (o.t === 'rune') return E.zetRune(S, o.id, 'groei');
     if (o.t === 'amb') return E.koopAmb(S, o.id);
+    if (o.t === 'kennis') return E.koopKennis(S, o.id);
     return E.koopMagie(S);
   }
 
@@ -105,7 +107,7 @@ window.BALANS = (() => {
         }
         const wacht = E.novaWacht(S);
         if (wacht >= Math.max(10, S.nova)) {
-          resets.push([t / 3600, wacht, S.nova + wacht]);
+          resets.push([t / 3600, wacht, S.nova + wacht, D.U.filter(u => S.up[u.id]).length, JSON.stringify(S.kennis || {}), E.BK.map(b => b + S.n[b]).join(' ')]);
           S = E.hergroei(S); gezien.clear();
         }
       }
