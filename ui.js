@@ -779,7 +779,7 @@ let vorige = performance.now(), sinds = 0, achT = 0, verborgen = false;
 setInterval(() => {
   if (verborgen) return;
   const nu = performance.now(), dt = Math.min(5, (nu - vorige) / 1000); vorige = nu;
-  E.tick(S, dt); meldBouw(); lomEv(E.lomTick(S, dt)); wereldEv(E.wereld(S, dt)); const auto = E.automatiseer(S, dt);
+  E.tick(S, dt); meldBouw(); lomEv(E.lomTick(S, dt)); wereldEv(E.wereld(S, dt)); const auto = E.automatiseer(S, dt); for (const x of auto) E.tel(S, String(x).startsWith('fase ') ? 'fase' : 'koop');   // automatisch bouwen en upgraden telt ook mee voor de doelen
   sinds += dt; achT += dt;
   if (achT > 1) { achT = 0; prest(E.checkAch(S)); doelen(); }
   gaveMeld(); gaveKnop();
