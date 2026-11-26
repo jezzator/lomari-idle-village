@@ -145,7 +145,7 @@ window.DATA = (() => {
   const GEB = {
     storm:      { naam: 'Storm',         doel: ['hakplek', 'zaag', 'kroon', 'liaan', 'hangtuin'], tekst: 'Een storm rukt aan de kronen' },
     plaag:      { naam: 'Plaag',         doel: ['pluk', 'liaan', 'hangtuin', 'bessen'], tekst: 'Een plaag tast de planten aan' },
-    instorting: { naam: 'Instorting',    doel: ['groeve', 'tunnel', 'kristgrot'], tekst: 'Een gang stort in' },
+    instorting: { naam: 'Instorting',    doel: ['groeve', 'tunnel', 'kristgrot', 'kristader'], tekst: 'Een gang stort in' },
     onweer:     { naam: 'Onweersnacht',  tev: true, nacht: true, tekst: 'Donder houdt de bewoners wakker' },
   };
   const novaDeler = 2e11, novaFormule = earned => Math.floor(3 * Math.cbrt(earned / novaDeler));
@@ -208,12 +208,15 @@ window.DATA = (() => {
     groeve:    { naam: 'Steengroeve',       d: 'Dorukha', p: { steen: .4 }, k: { hout: 90 }, w: 1 },
     tunnel:    { naam: 'Tunnelgang',        d: 'Dorukha', p: { steen: 3.5 }, k: { hout: 1500, steen: 120 }, w: 2 },
     kristgrot: { naam: 'Kristalgrot',       d: 'Dorukha', p: { kristal: .05 }, k: { hout: 900, steen: 500 }, w: 2 },
+    kristader: { naam: 'Kristaladers',      d: 'Dorukha', p: { kristal: .4 }, k: { steen: 8000, kristal: 150, gereedschap: 300 }, w: 3 },
     kelder:    { naam: 'Steenkelder',       d: 'Dorukha', o: { steen: 400, kristal: 40 }, k: { hout: 80, steen: 40 } },
     werkbank:  { naam: 'Werkbank',          d: 'Frikto', p: { gereedschap: .4 }, c: { hout: 1.2, steen: .3 }, k: { hout: 400, steen: 80 }, w: 1 },
     smidse:    { naam: 'Grote werkplaats',  d: 'Frikto', p: { gereedschap: 3.5 }, c: { hout: 8, steen: 2.5 }, k: { hout: 6000, steen: 1200, gereedschap: 100 }, w: 3 },
+    slijperij: { naam: 'Slijperij',         d: 'Frikto', p: { kristal: .15 }, c: { steen: 3, gereedschap: .3 }, k: { hout: 3000, steen: 2000, gereedschap: 200 }, w: 2 },
     gerkist:   { naam: 'Gereedschapsopslag', d: 'Frikto', o: { gereedschap: 200 }, k: { hout: 200, steen: 50 } },
     zangplek:  { naam: 'Zangplek',          d: 'Voelari', p: { energie: .02 }, k: { bladeren: 600, lianen: 250 }, w: 1 },
     ontmoet:   { naam: 'Ontmoetingsboom',   d: 'Voelari', p: { energie: .15 }, k: { hout: 5000, kristal: 60, lianen: 800 }, w: 3 },
+    geode:     { naam: 'Zingende geode',    d: 'Voelari', p: { kristal: .1 }, k: { lianen: 2000, energie: 30, kristal: 20 }, w: 2 },
     lichtkr:   { naam: 'Lichtkring',        d: 'Voelari', o: { energie: 150 }, k: { bladeren: 300, kristal: 5 } },
     brug:      { naam: 'Touwbrug',          d: 'Rikilari', brug: true, k: { lianen: 300, hout: 200 } },
     valrad:    { naam: 'Valwaterrad',       d: 'Valunari', p: { gereedschap: 2 }, k: { hout: 20000, steen: 5000 }, w: 2 },
