@@ -85,6 +85,19 @@ window.DATA = (() => {
   // Je krijgt floor(√(Nova / per)) ringen. Blijft: ringen, prestaties, Lomari (Band en bomen), relieken, Bronwerk, De oude bron, Beproevingen, gaven.
   const JAAR = { per: 150, nova: .15, prod: .1 };   // balanstest: eerste Sterrenstam vol na ~11 dagen, na 2 ringen weer vol na ~6 dagen
   const jaarFormule = nova => Math.floor(Math.sqrt(nova / JAAR.per));
+  // Dagelijkse doelen: elke dag (lokale datum) drie kleine opdrachten. Elk voltooid doel: een Groeigave; alle drie: ook een Bloeigave.
+  // n = hoeveel; kan = alleen kiezen als het die dag haalbaar is.
+  const DOEL_AANTAL = 3;
+  const DOEL = {
+    tik:   { n: 150, tekst: n => `Tik ${n} keer op Verzamelen` },
+    koop:  { n: 30,  tekst: n => `Bouw ${n} gebouwen` },
+    fase:  { n: 1,   tekst: () => 'Start een Upgrade naar een hogere fase', kan: S => S.runs > 0 || Object.values(S.fase || {}).some(f => f >= 2) },
+    up:    { n: 3,   tekst: n => `Koop ${n} upgrades, ambachten of magische upgrades` },
+    help:  { n: 20,  tekst: n => `Tik ${n} keer om te helpen bij een bosgebeurtenis of een bouwplaats`, kan: S => (S.gebeurtenissen || 0) > 0 },
+    act:   { n: 3,   tekst: n => `Gebruik ${n} keer een vaardigheid van een Lomari`, kan: S => Object.keys(S.lom || {}).length > 0 },
+    tocht: { n: 1,   tekst: () => 'Stuur een Lomari op tocht', kan: S => !!S.star?.t1 },
+    gave:  { n: 1,   tekst: () => 'Zet een gave van het woud in' },
+  };
   const BEPROEF_VANAF = 3;
   const BEPROEF = {
     verband: { naam: 'Losse draden',   tekst: 'Verbanden werken niet', beloning: 'Verband-bonussen +15%', fx: [{ t: 'verband', plus: .15 }] },
@@ -294,5 +307,5 @@ window.DATA = (() => {
     { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
   ];
 
-  return { JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

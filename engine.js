@@ -16,7 +16,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
-      reliek: prev ? prev.reliek || {} : {}, jaar: prev ? prev.jaar || 0 : 0, beproef: prev?.beproefVolgende || null, beproefKlaar: prev ? prev.beproefKlaar || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
+      reliek: prev ? prev.reliek || {} : {}, jaar: prev ? prev.jaar || 0 : 0, beproef: prev?.beproefVolgende || null, beproefKlaar: prev ? prev.beproefKlaar || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, tel: prev ? prev.tel || {} : {}, dag: prev ? prev.dag || null : null, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -615,6 +615,29 @@ window.ENGINE = (() => {
     return { tot: totaal(S), bedden: bedden(S, m), open: echteOpen(S), gebieden: S.open.length - echteOpen(S), maxFase: Math.max(...BK.map(b => S.fase[b])),
       hout: S.houtTot, magie: S.magie, runs: S.runs, nova: S.nova, lomari: Object.keys(S.lom).length, tikken: S.tikken || 0 };
   }
+  // ---------- Dagelijkse doelen ----------
+  const tel = (S, k, n = 1) => { S.tel = S.tel || {}; S.tel[k] = (S.tel[k] || 0) + n; };
+  function dagDoelen(S, datum) {   // nieuwe dag: drie nieuwe doelen; de tellers lopen gewoon door, elk doel onthoudt de beginstand
+    if (S.dag?.datum === datum) return S.dag;
+    S.tel = S.tel || {};
+    const pot = Object.keys(D.DOEL).filter(k => !D.DOEL[k].kan || D.DOEL[k].kan(S)), keuze = [];
+    while (keuze.length < D.DOEL_AANTAL && pot.length) keuze.push(pot.splice(Math.floor(Math.random() * pot.length), 1)[0]);
+    S.dag = { datum, doelen: keuze.map(k => ({ k, n: D.DOEL[k].n, van: S.tel[k] || 0, op: false, gemeld: false })), bonus: false };
+    return S.dag;
+  }
+  const doelStand = (S, d) => Math.min(d.n, (S.tel?.[d.k] || 0) - d.van);
+  const doelKlaar = (S, d) => doelStand(S, d) >= d.n;
+  // Een doelbeloning mag boven het maximum van 5 uitkomen: wat je verdiend hebt, raak je niet kwijt.
+  const geefVrij = (S, id) => { S.gave = S.gave || {}; S.gave[id] = (S.gave[id] || 0) + 1; (S.gaveNieuw = S.gaveNieuw || []).push(id); };
+  function haalDoel(S, i) {   // beloning ophalen: Groeigave, en bij het laatste van de drie ook een Bloeigave
+    const d = S.dag?.doelen[i]; if (!d || d.op || !doelKlaar(S, d)) return false;
+    d.op = true; geefVrij(S, 'groei');
+    if (!S.dag.bonus && S.dag.doelen.every(x => x.op)) { S.dag.bonus = true; geefVrij(S, 'bloei'); }
+    return true;
+  }
+  function doelMeld(S) {   // net voltooide doelen, één keer
+    const uit = []; for (const d of S.dag?.doelen || []) if (!d.gemeld && doelKlaar(S, d)) { d.gemeld = true; uit.push(d); } return uit;
+  }
   function checkAch(S) {
     const st = stats(S), nieuw = [];
     for (const a of D.ACH) if (!S.ach[a.id] && a.test(st)) { S.ach[a.id] = true; nieuw.push(a); geefGave(S, 'groei'); }
@@ -670,7 +693,7 @@ window.ENGINE = (() => {
 
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k, R) => { const m = mods(S); return cap(S, k, m, R || rates(S, m)); }, kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
-    gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
+    tel, dagDoelen, doelStand, doelKlaar, haalDoel, doelMeld, gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
     novaW, bonusLijst: S => bonusLijst(S), magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
