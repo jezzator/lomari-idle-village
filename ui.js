@@ -319,7 +319,7 @@ function paneelLomari() {
 function novaTijd() {
   const m = E.mods(S), R = E.rates(S, m), x = m.novaX, nu = Math.floor(D.novaFormule(S.earned) * x);
   let n = D.novaFormule(S.earned) + 1; while (Math.floor(n * x) <= nu) n++;
-  const doel = D.novaWaarde(n), per = E.RK.reduce((a, k) => a + RES[k].waarde * R.prod[k], 0);
+  const doel = D.novaWaarde(n), per = E.RK.reduce((a, k) => a + E.novaW(k) * R.prod[k], 0);
   const sec = per > 0 ? Math.max(0, (doel - S.earned) / per) : null;
   return { doel, sec: sec !== null && sec > 30 * 86400 ? null : sec };   // langer dan 30 dagen: niet tonen
 }
@@ -329,7 +329,7 @@ function novaRegel() {
 }
 // Uitleg van de berekening, met de waarden uit data.js
 function novaUitleg() {
-  const rijen = Object.keys(D.RES).map(k => `<tr><td>${D.RES[k].naam}</td><td id="nm-${k}"></td><td>× ${String(D.RES[k].waarde).replace('.', ',')}</td><td id="nb-${k}"></td></tr>`).join('');
+  const rijen = Object.keys(D.RES).map(k => `<tr><td>${D.RES[k].naam}</td><td id="nm-${k}"></td><td>× ${E.novaW(k).toLocaleString('nl-NL')}</td><td id="nb-${k}"></td></tr>`).join('');
   return `<details class="boom" ${window.novaOpen ? "open" : ""} ontoggle="window.novaOpen = this.open"><summary>Hoe wordt Nova berekend?</summary>
     <p><b>Waarde</b> = alles wat je dorp deze ronde maakt × de waarde per grondstof:</p>
     <table class="novat"><tr><th>Grondstof</th><th>Gemaakt</th><th>Waarde</th><th>Telt mee</th></tr>${rijen}
@@ -343,7 +343,7 @@ function novaUitleg() {
 // Live: per grondstof hoeveel er deze ronde gemaakt is en wat dat bijdraagt aan de waarde
 function novaLive() {
   const per = S.earnedPer || {}; let som = 0;
-  for (const k in D.RES) { const n = per[k] || 0, w = n * D.RES[k].waarde; som += w;
+  for (const k in D.RES) { const n = per[k] || 0, w = n * E.novaW(k); som += w;
     $('#nm-' + k).textContent = fmt(n); $('#nb-' + k).textContent = fmt(w); }
   const ouder = S.earned - som; $('#nm-ouder-r').hidden = ouder < 1; $('#nm-ouder').textContent = fmt(ouder);
   $('#nm-tot').textContent = fmt(S.earned);

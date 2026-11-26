@@ -10,7 +10,7 @@ window.DATA = (() => {
     steen:       { naam: 'Steen',           kleur: '#9a948a', waarde: 3,   cap: 600 },
     gereedschap: { naam: 'Gereedschap',     kleur: '#c99a4a', waarde: 8,   cap: 300 },
     kristal:     { naam: 'Kristallen',      kleur: '#8fd3e8', waarde: 25,  cap: 80 },
-    energie:     { naam: 'Flohara-energie', kleur: '#c48ae8', waarde: 40,  cap: 150 },
+    energie:     { naam: 'Flohara-energie', kleur: '#c48ae8', waarde: 40,  cap: 150, nova: 1000 },   // nova = waarde voor Nova (anders gelijk aan waarde)
     nevelparel:  { naam: 'Nevelparels',     kleur: '#cfe6ef', waarde: 200,  cap: 100, zeldzaam: 'Valunari' },
     kroonhars:   { naam: 'Kroonhars',       kleur: '#f0b04a', waarde: 300,  cap: 100, zeldzaam: 'Kroveli' },
     wortelgloed: { naam: 'Wortelgloed',     kleur: '#e2643a', waarde: 1000, cap: 50,  zeldzaam: 'Lomaruun' },

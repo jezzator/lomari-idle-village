@@ -3,6 +3,7 @@
 window.ENGINE = (() => {
   const D = window.DATA, LM = window.LOM, { RES, BAL, B } = D, C = LM.CFG;
   const RK = Object.keys(RES), BK = Object.keys(B);
+  const novaW = k => RES[k].nova ?? RES[k].waarde;   // wat een grondstof meetelt voor Nova
   const fx = id => (D.U.find(u => u.id === id) || D.STAR.find(n => n.id === id)).fx;
 
   function nieuw(prev) {
@@ -226,7 +227,7 @@ window.ENGINE = (() => {
       vul(S, k, net * dt, m, R);
       if (R.prod[k] > 0) {
         const gemaakt = R.prod[k] * eff * dt;
-        S.earned += RES[k].waarde * gemaakt; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + gemaakt;
+        S.earned += novaW(k) * gemaakt; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + gemaakt;
         S.ooit[k] = (S.ooit[k] || 0) + gemaakt;
         if (k === 'energie') S.energieTot += gemaakt;
         if (k === 'hout') S.houtTot += gemaakt;
@@ -419,7 +420,7 @@ window.ENGINE = (() => {
     const m = mods(S); m.geenCap = geenCap; const w = tikWaarde(S, m, x), uit = {};
     for (const [k, v0] of Object.entries(w)) {
       uit[k] = vul(S, k, v0 * keer, m);
-      S.earned += uit[k] * RES[k].waarde; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + uit[k]; if (k === 'hout') S.houtTot += uit[k];
+      S.earned += uit[k] * novaW(k); (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + uit[k]; if (k === 'hout') S.houtTot += uit[k];
     }
     return uit;
   }
@@ -603,7 +604,7 @@ window.ENGINE = (() => {
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k, R) => { const m = mods(S); return cap(S, k, m, R || rates(S, m)); }, kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
-    magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
+    novaW, magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     actKan, gebruik, doorbreekKan, doorbreek,
