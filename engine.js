@@ -185,6 +185,21 @@ window.ENGINE = (() => {
     return (1 + m.brug * S.n.brug) * (S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1) * (1 + D.BRONWERK.prod * (S.bronwerk?.t || 0)) * (1 + D.JAAR.prod * (S.jaar || 0)) * 1.25 ** S.magie * (1 + BAL.novaPct * S.nova)
       * (1 + .01 * achAantal(S)) * (1 + m.perDistrict * S.open.length) * (m.geenNacht ? 1 : gaveX(S));
   }
+  // Dezelfde factoren als globaal(), los, voor het overzicht "Je bonussen". Alleen wat iets doet.
+  function bonusLijst(S, m = mods(S)) {
+    const l = [
+      ['Nova', `${S.nova} × +${Math.round(BAL.novaPct * 100)}%`, 1 + BAL.novaPct * S.nova],
+      ['Flohara-resonantie', `${S.magie} × ×1,25`, 1.25 ** S.magie],
+      ['Prestaties', `${achAantal(S)} × +1%`, 1 + .01 * achAantal(S)],
+      ['Touwbruggen', `${S.n.brug} × +${Math.round(m.brug * 100)}%`, 1 + m.brug * S.n.brug],
+      ['Werkliederen', `${S.open.length} districten × +${Math.round(m.perDistrict * 100)}%`, 1 + m.perDistrict * S.open.length],
+      ['De oude bron', `fase ${S.fase.oudebron}`, S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1],
+      ['Bronwerk', `trede ${S.bronwerk?.t || 0}`, 1 + D.BRONWERK.prod * (S.bronwerk?.t || 0)],
+      ['Jaarringen', `${S.jaar || 0}`, 1 + D.JAAR.prod * (S.jaar || 0)],
+      ['Gave van het woud', 'loopt nu', gaveX(S)],
+    ].filter(x => x[2] > 1.0001);
+    return { lijst: l, totaal: l.reduce((a, x) => a * x[2], 1) };
+  }
   const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)), 0);
   const banen = S => BK.reduce((a, b) => a + S.n[b] * (B[b].w || 0), 0);
   // Opslag = basis + opslaggebouwen + een buffer van BAL.opslagUren productie, alles × opslagbonussen
@@ -656,7 +671,7 @@ window.ENGINE = (() => {
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k, R) => { const m = mods(S); return cap(S, k, m, R || rates(S, m)); }, kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
-    novaW, magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
+    novaW, bonusLijst: S => bonusLijst(S), magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     jaarKlaar, jaarWacht, jaarring, beproefOpen, bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,

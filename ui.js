@@ -389,7 +389,9 @@ function beproefHTML(klaar) {
 }
 function paneelStam() {
   const vrij = S.nova - S.novaUit, wacht = E.novaWacht(S), klaar = E.hergroeiKlaar(S);
-  let h = `<div class="kaart hg"><h2>Hergroei</h2>
+  const bl = E.bonusLijst(S), pc = x => (x >= 10 ? '×' + fmt(x) : '+' + Math.round((x - 1) * 100).toLocaleString('nl-NL') + '%');
+  let h = `<div class="kaart"><h2>Je bonussen</h2><p class="groot">Alle productie <b>${pc(bl.totaal)}</b></p>${bl.lijst.length ? `<table>${bl.lijst.map(([n, w, x]) => `<tr><td>${n} <small class="nb">${w}</small></td><td>${pc(x)}</td></tr>`).join('')}</table><p class="nb">De bonussen vermenigvuldigen met elkaar. Daarbovenop komen upgrades, Ambachten, Lomari en Verbanden per grondstof of district.</p>` : '<p class="nb">Nog geen bonussen op alle productie.</p>'}</div>`;
+  h += `<div class="kaart hg"><h2>Hergroei</h2>
     <p>Begin het dorp opnieuw. Je houdt je Nova, de Sterrenstam en je prestaties. Gebouwen, voorraad, upgrades en de districten na de eerste drie beginnen opnieuw.</p>
     ${klaar ? `<p class="groot">Hergroei levert nu <b id="wacht">${wacht}</b> Nova op</p>${E.mods(S).veyra ? `<p>Veyra: deze ronde ${(wacht / Math.max(.1, (Date.now() - S.rondeStart) / 3600)).toFixed(2).replace('.', ',')} Nova per uur. Zolang dit stijgt, loont doorspelen.</p>` : ''}<button class="knop" id="hergroei">Hergroei</button>`
       : `<p>Beschikbaar na ${fmt(BAL.hergroeiEnergie)} Flohara-energie in deze ronde.</p><div class="bar"><i id="ebar" style="width:${Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100)}%"></i></div><small class="nb" id="etekst">${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}</small>`}
@@ -428,7 +430,7 @@ function paneelInstel() {
 }
 
 function maakSig() {
-  return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, S.star, S.nova, S.novaUit,
+  return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, !!S.gaveAan, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
     Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.beproef, S.beproefKlaar, S.jaar, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
 }
