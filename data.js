@@ -29,7 +29,7 @@ window.DATA = (() => {
     offlineRendement: 1,        // offline even snel als spelen; upgrades en Yomi tillen het tot offlineMax
     offlineMax: 1.5,
     offlineUren: 8,
-    novaPct: 0.03,
+    novaPct: 0.05,
     hergroeiEnergie: 100000,     // Hergroei beschikbaar na zoveel energie (moment dat Veyra verschijnt)
     verzamelSec: .2,            // één tik = 0,2 s productie hout + bladeren (minimaal 1 van elk)
     magieMax: 12,
