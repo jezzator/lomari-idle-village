@@ -322,7 +322,7 @@ function paneelLomari() {
     const p = E.plek(S, def.id), sterk = !p ? null : (def.overal || p === def.d ? 100 : 40);
     const status = l.tocht ? `op ${D.TOCHT[l.tocht.soort].naam.toLowerCase()}, terug over <span data-tocht="${def.id}">${duur(l.tocht.over)}</span>` : l.reis > 0 ? `onderweg naar ${l.d}, nog <span data-reis="${def.id}">${duur(l.reis)}</span>` : !l.d ? 'vrij in het dorp: gave werkt niet' : `ingezet in ${l.d}: gave werkt voor ${sterk}%`;
     const opts = ['', ...S.open].map(d => `<option value="${d}" ${(l.d || '') === d ? 'selected' : ''}>${d || 'Vrij'}</option>`).join('');
-    return `<div class="lm${l.d && !l.reis ? ' actief' : ''}"><img src="portret/${def.id}.jpg" alt="${def.naam}"><div>
+    return `<div class="lm${l.d && !l.reis ? ' actief' : ''}"><img src="portret/${def.id}.jpg" alt="${def.naam}"${GROOT.has(def.id) ? ` data-groot="${def.id}" class="tikbaar" title="Bekijk ${def.naam}"` : ''}><div>
       <h3>${def.naam} <span class="n">Band ${l.band}</span></h3><p class="spec">${def.spec} · thuis in ${def.d}</p>
       <p class="pers">${def.pers}. ${def.gave}</p>
       <p class="gave"><b>Gave:</b> ${def.pasTekst(l.band)}</p>
@@ -606,6 +606,9 @@ $('#verzamel').onclick = () => {
   f.innerHTML = (ritme ? '<b>Ritme ×4</b> ' : '') + Object.entries(uit).filter(([, v]) => v > 0).map(([k, v]) => `${ico(k)}+${fmt(v)}`).join(' ');
   E.tel(S, 'tik'); if (E.isNacht(S)) { E.tel(S, 'nachttik'); S.nachtTik = (S.nachtTik || 0) + 1; S.tel.nachtTikMax = Math.max(S.tel.nachtTikMax || 0, S.nachtTik); } $('#verzamel').after(f); setTimeout(() => f.remove(), 900); klank(ritme ? 'ritme' : 'tik'); ververs();
 };
+// Grote tekeningen van de Lomari (portret/groot/); tik op het portret in het Lomari-paneel.
+const GROOT = new Set(['brakka', 'elomi', 'koro', 'liri', 'seli', 'tiku', 'varo', 'veyra', 'yomi']);
+$('#paneel').addEventListener('click', e => { const g = e.target.closest('[data-groot]'); if (g) { const d = E.lomDef(g.dataset.groot); dialoog(d.naam, `<img src="portret/groot/${d.id}.jpg" alt="${d.naam}, thuis in ${d.d}" style="width:100%;border-radius:12px;display:block">`, 'Sluiten'); } });
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
   if (d.act || d.ult) { const id = d.act || d.ult, ult = !!d.ult, r = E.gebruik(S, id, ult); if (r) { const A = LM.ACT[id];
