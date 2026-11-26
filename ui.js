@@ -607,7 +607,7 @@ $('#verzamel').onclick = () => {
   E.tel(S, 'tik'); if (E.isNacht(S)) { E.tel(S, 'nachttik'); S.nachtTik = (S.nachtTik || 0) + 1; S.tel.nachtTikMax = Math.max(S.tel.nachtTikMax || 0, S.nachtTik); } $('#verzamel').after(f); setTimeout(() => f.remove(), 900); klank(ritme ? 'ritme' : 'tik'); ververs();
 };
 // Grote tekeningen van de Lomari (portret/groot/); tik op het portret in het Lomari-paneel.
-const GROOT = new Set(['brakka', 'elomi', 'koro', 'liri', 'seli', 'tiku', 'varo', 'veyra', 'yomi']);
+const GROOT = new Set(['beki', 'brakka', 'droki', 'elomi', 'kavo', 'koro', 'liri', 'melo', 'niko', 'nira', 'ori', 'piko', 'seli', 'sora', 'tiku', 'varo', 'veyra', 'yomi']);
 $('#paneel').addEventListener('click', e => { const g = e.target.closest('[data-groot]'); if (g) { const d = E.lomDef(g.dataset.groot); dialoog(d.naam, `<img src="portret/groot/${d.id}.jpg" alt="${d.naam}, thuis in ${d.d}" style="width:100%;border-radius:12px;display:block">`, 'Sluiten'); } });
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
