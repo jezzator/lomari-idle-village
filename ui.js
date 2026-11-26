@@ -77,7 +77,7 @@ function balk() {
   const st = `${fmt(R.bed)} bewoners voor ${fmt(R.job)} werkplekken · bemanning ${Math.round(R.staff * 100)}%`;
   $('#bew').textContent = st;
   $('#hon').hidden = !R.honger;
-  $('#nova').textContent = S.nova ? `${S.nova} Nova · +${Math.round(S.nova * BAL.novaPct * 100)}%` : '';
+  { const t = novaTijd(); $('#nova').textContent = (innerWidth < 600 ? [S.nova ? `${S.nova} Nova` : '', t.sec !== null ? `+1 over ${kort(t.sec)}` : ''] : [S.nova ? `${S.nova} Nova · +${Math.round(S.nova * BAL.novaPct * 100)}%` : '', t.sec !== null ? `volgende Nova ${kort(t.sec)}` : '']).filter(Boolean).join(' · '); }
 }
 
 function gebiedKnoppen() {
@@ -314,10 +314,18 @@ function paneelLomari() {
   }).join('');
   return h;
 }
-// Waarde van deze ronde en wanneer de volgende Nova komt (Nova = 3 × ∛(waarde / 50 miljard), daarna bonussen)
+// Waarde van deze ronde en wanneer de volgende Nova komt (Nova = 3 × ∛(waarde / 200 miljard), daarna bonussen)
+// Hoe lang tot de volgende hele Nova, bij de huidige productie (bruto, zoals Nova telt). null = geen productie.
+function novaTijd() {
+  const m = E.mods(S), R = E.rates(S, m), x = m.novaX, nu = Math.floor(D.novaFormule(S.earned) * x);
+  let n = D.novaFormule(S.earned) + 1; while (Math.floor(n * x) <= nu) n++;
+  const doel = D.novaWaarde(n), per = E.RK.reduce((a, k) => a + RES[k].waarde * R.prod[k], 0);
+  const sec = per > 0 ? Math.max(0, (doel - S.earned) / per) : null;
+  return { doel, sec: sec !== null && sec > 30 * 86400 ? null : sec };   // langer dan 30 dagen: niet tonen
+}
 function novaRegel() {
-  const basis = D.novaFormule(S.earned), x = E.mods(S).novaX;
-  return `Waarde deze ronde: <b>${fmt(S.earned)}</b>. Volgende Nova bij ${fmt(D.novaWaarde(basis + 1))}.` + (x > 1.0001 ? ` Bonus op Nova: +${Math.round((x - 1) * 100)}%.` : '');
+  const x = E.mods(S).novaX, t = novaTijd();
+  return `Waarde deze ronde: <b>${fmt(S.earned)}</b>. Volgende Nova bij ${fmt(t.doel)}${t.sec !== null ? `, over <b>${kort(t.sec)}</b> bij je huidige productie` : ''}.` + (x > 1.0001 ? ` Bonus op Nova: +${Math.round((x - 1) * 100)}%.` : '');
 }
 // Uitleg van de berekening, met de waarden uit data.js
 function novaUitleg() {
