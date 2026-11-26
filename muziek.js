@@ -27,33 +27,50 @@ window.MUZIEK = (() => {
 
   // Eigen nummers (mp3 in muziek/). Heeft dag of nacht geen nummers, dan speelt daar de gegenereerde muziek.
   const NUMMERS = { dag: ['muziek/dag-1.mp3', 'muziek/dag-2.mp3', 'muziek/dag-3.mp3'], nacht: ['muziek/nacht-1.mp3', 'muziek/nacht-2.mp3', 'muziek/nacht-3.mp3'] };
-  let speler = null, bg = null, nummer = '';
+  // Twee spelers om en om: het volgende nummer begint al terwijl het vorige wegebt, zodat er nooit stilte valt.
+  const OVER = 8, LUID = 1.6;
+  let decks = [], actief = 0, nummer = '';
   const lijst = () => NUMMERS[nacht ? 'nacht' : 'dag'];
   const bestandModus = () => lijst().length > 0;
+  const speelt = () => decks.length > 0 && !decks[actief].a.paused;
   function maakSpeler() {
-    speler = new Audio(); speler.preload = 'auto';
-    bg = ctx.createGain(); bg.gain.value = 1.6; ctx.createMediaElementSource(speler).connect(bg); bg.connect(uit);
-    speler.addEventListener('ended', () => { if (aan && !verborgen) bestandModus() ? speelNummer() : maat(); });
-    speler.addEventListener('error', () => { NUMMERS.dag = NUMMERS.dag.filter(x => x !== nummer); NUMMERS.nacht = NUMMERS.nacht.filter(x => x !== nummer); if (aan && !verborgen) bestandModus() ? speelNummer() : maat(); });
-  }
-  function speelNummer(hervat) {
-    if (!speler) maakSpeler();
-    const l = lijst(); if (!l.length) return;
-    bg.gain.cancelScheduledValues(ctx.currentTime); bg.gain.setValueAtTime(1.6, ctx.currentTime);
-    if (!(hervat && l.includes(nummer) && speler.src)) {
-      let n; do n = kies(l); while (l.length > 1 && n === nummer);
-      nummer = n; speler.src = n;
+    for (let i = 0; i < 2; i++) {
+      const a = new Audio(), g = ctx.createGain(); a.preload = 'auto'; g.gain.value = 0;
+      ctx.createMediaElementSource(a).connect(g); g.connect(uit);
+      a.addEventListener('timeupdate', () => { if (i === actief && !a.dataset.over && aan && !verborgen && a.duration && a.duration - a.currentTime < OVER) { a.dataset.over = 1; overvloei(OVER); } });
+      a.addEventListener('ended', () => { if (i === actief && !a.dataset.over && aan && !verborgen) overvloei(1); });
+      a.addEventListener('error', () => { if (i !== actief) return; NUMMERS.dag = NUMMERS.dag.filter(x => x !== nummer); NUMMERS.nacht = NUMMERS.nacht.filter(x => x !== nummer); if (aan && !verborgen) overvloei(1); });
+      decks.push({ a, g });
     }
-    speler.play().catch(() => {});
   }
-  // Bij de overgang naar dag of nacht: zacht wegfaden en overstappen op wat bij het uur hoort.
+  // Laat het huidige nummer in `sec` seconden wegebben en het volgende (of de gegenereerde muziek) tegelijk opkomen.
+  function overvloei(sec) {
+    if (!decks.length) maakSpeler();
+    const t = ctx.currentTime, oud = decks[actief];
+    if (!oud.a.paused) {
+      oud.g.gain.cancelScheduledValues(t); oud.g.gain.setValueAtTime(oud.g.gain.value, t); oud.g.gain.linearRampToValueAtTime(0, t + sec);
+      const a = oud.a; setTimeout(() => { if (decks[actief].a !== a) a.pause(); }, sec * 1000 + 300);
+    }
+    const l = lijst();
+    if (!l.length) { stopLussen(); stuk = null; maat(); return; }
+    let n; do n = kies(l); while (l.length > 1 && n === nummer);
+    actief = 1 - actief; nummer = n;
+    const nw = decks[actief]; nw.a.pause(); nw.a.src = n; delete nw.a.dataset.over;
+    nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueAtTime(0, t); nw.g.gain.linearRampToValueAtTime(LUID, t + Math.max(1, sec * 0.6));
+    nw.a.play().catch(() => {});
+  }
+  function speelNummer() {
+    const d = decks[actief];
+    if (d && d.a.src && lijst().includes(nummer) && !d.a.ended) { // hervatten waar het was
+      d.g.gain.cancelScheduledValues(ctx.currentTime); d.g.gain.setValueAtTime(LUID, ctx.currentTime); d.a.play().catch(() => {});
+    } else overvloei(1.5);
+  }
+  // Bij de overgang naar dag of nacht: het nummer vloeit over in wat bij het uur hoort.
   function wissel() {
     if (!aan || verborgen || !ctx || ctx.state !== 'running') return;
-    const spelend = speler && !speler.paused;
-    if (!spelend && !bestandModus()) { if (stuk) lengte = Math.min(lengte, stap + 2); return; }
-    stopLussen();
-    if (spelend) bg.gain.setTargetAtTime(0, ctx.currentTime, 1);
-    later(() => { if (speler) speler.pause(); bestandModus() ? speelNummer() : (stuk && (stap = lengte), maat()); }, spelend ? 4000 : 0);
+    if (speelt()) return overvloei(6);
+    if (!bestandModus()) { if (stuk) lengte = Math.min(lengte, stap + 2); return; }
+    stopLussen(); overvloei(4);
   }
 
   // Speelstand van het huidige stuk
@@ -167,10 +184,10 @@ window.MUZIEK = (() => {
   function speel() {
     if (!aan || verborgen) return;
     if (!ctx && !maak()) return;
-    const go = () => { zetVolume(); if (bestandModus()) { if (!speler || speler.paused) { stopLussen(); speelNummer(true); } } else if (!timers.length) maat(); };
+    const go = () => { zetVolume(); if (bestandModus()) { if (!speelt()) { stopLussen(); speelNummer(); } } else if (!timers.length) maat(); };
     ctx.state === 'running' ? go() : ctx.resume().then(go).catch(() => {});
   }
-  function pauze() { stopLussen(); if (speler) setTimeout(() => { if (!aan || verborgen) speler.pause(); }, 400); if (ctx) { zetVolume(true); setTimeout(() => { if (!aan || verborgen) ctx.suspend().catch(() => {}); }, 400); } }
+  function pauze() { stopLussen(); if (decks.length) setTimeout(() => { if (!aan || verborgen) decks.forEach(d => d.a.pause()); }, 400); if (ctx) { zetVolume(true); setTimeout(() => { if (!aan || verborgen) ctx.suspend().catch(() => {}); }, 400); } }
 
   // Browsers en Android laten pas geluid toe na een tik.
   const ontgrendel = () => { if (aan) speel(); };
@@ -179,7 +196,9 @@ window.MUZIEK = (() => {
 
   return {
     staat: () => ctx ? ctx.state : 'geen',
-    stuk: () => speler && !speler.paused ? nummer : stuk ? stuk.naam : '',
+    spoel: s => { const a = decks[actief]?.a; if (a && a.duration) a.currentTime = a.duration - s; },
+    spelend: () => decks.map(d => !d.a.paused),
+    stuk: () => speelt() ? nummer : stuk ? stuk.naam : '',
     instel(a, v) { aan = !!a; vol = Math.max(0, Math.min(1, v)); aan ? speel() : pauze(); zetVolume(); },
     // Bij de overgang naar dag of nacht rondt het huidige stuk binnen twee akkoorden af; daarna volgt een stuk dat bij het uur past.
     nacht(n) { n = !!n; if (n === nacht) return; nacht = n; wissel(); }
