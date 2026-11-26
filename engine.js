@@ -16,7 +16,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
-      reliek: prev ? prev.reliek || {} : {}, beproef: prev?.beproefVolgende || null, beproefKlaar: prev ? prev.beproefKlaar || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
+      reliek: prev ? prev.reliek || {} : {}, jaar: prev ? prev.jaar || 0 : 0, beproef: prev?.beproefVolgende || null, beproefKlaar: prev ? prev.beproefKlaar || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -134,6 +134,7 @@ window.ENGINE = (() => {
     }
     // Relieken van tochten: elke trede telt als één keer het effect
     for (const [id, n] of Object.entries(S.reliek || {})) for (let i = 0; i < n; i++) for (const e of D.RELIEK[id][2]) zet(e);
+    m.novaX *= 1 + D.JAAR.nova * (S.jaar || 0);   // Jaarringen
     // Bronwerk: elke 5e trede +5% Nova
     m.novaX *= (1 + D.BRONWERK.nova) ** Math.floor((S.bronwerk?.t || 0) / D.BRONWERK.novaElk);
     // Upgradebomen: gekochte knopen gelden altijd
@@ -181,7 +182,7 @@ window.ENGINE = (() => {
 
   const achAantal = S => Object.values(S.ach).filter(Boolean).length;
   function globaal(S, m) {
-    return (1 + m.brug * S.n.brug) * (S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1) * (1 + D.BRONWERK.prod * (S.bronwerk?.t || 0)) * 1.25 ** S.magie * (1 + BAL.novaPct * S.nova)
+    return (1 + m.brug * S.n.brug) * (S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1) * (1 + D.BRONWERK.prod * (S.bronwerk?.t || 0)) * (1 + D.JAAR.prod * (S.jaar || 0)) * 1.25 ** S.magie * (1 + BAL.novaPct * S.nova)
       * (1 + .01 * achAantal(S)) * (1 + m.perDistrict * S.open.length) * (m.geenNacht ? 1 : gaveX(S));
   }
   const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)), 0);
@@ -609,6 +610,14 @@ window.ENGINE = (() => {
   const hergroeiKlaar = S => S.energieTot >= BAL.hergroeiEnergie;
   const novaWacht = S => hergroeiKlaar(S) ? Math.floor(D.novaFormule(S.earned) * mods(S).novaX) : 0;
   const beproefOpen = S => S.runs >= D.BEPROEF_VANAF;
+  // Jaarring: kan als de hele Sterrenstam gegroeid is. Nova en Sterrenstam terug naar nul; ringen blijven.
+  const jaarKlaar = S => D.STAR.every(s => S.star[s.id]);
+  const jaarWacht = S => jaarKlaar(S) ? D.jaarFormule(S.nova) : 0;
+  function jaarring(S) {
+    const n = jaarWacht(S); if (n < 1) return null;
+    const T = nieuw({ ...S, nova: 0, novaUit: 0, star: {}, jaar: (S.jaar || 0) + n, runs: S.runs + 1, beproefVolgende: null });
+    for (let i = 0; i < 2; i++) geefGave(T, 'woud'); T.gaveNieuw = []; return T;
+  }
   function hergroei(S, beproef = null) {
     const n = novaWacht(S); if (n < 1) return null;
     const klaar = S.beproef ? { ...S.beproefKlaar, [S.beproef]: true } : S.beproefKlaar;   // ronde gehaald: beloning voor altijd
@@ -650,7 +659,7 @@ window.ENGINE = (() => {
     novaW, magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
-    beproefOpen, bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
+    jaarKlaar, jaarWacht, jaarring, beproefOpen, bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
     runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };

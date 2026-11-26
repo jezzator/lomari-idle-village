@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = []; S1.gaveKocht = S1.gaveKocht || {}; S1.reliek = S1.reliek || {}; S1.beproef = S1.beproef || null; S1.beproefKlaar = S1.beproefKlaar || {}; S1.bronwerk = S1.bronwerk || { t: 0, in: {} };
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = []; S1.gaveKocht = S1.gaveKocht || {}; S1.reliek = S1.reliek || {}; S1.beproef = S1.beproef || null; S1.beproefKlaar = S1.beproefKlaar || {}; S1.jaar = S1.jaar || 0; S1.bronwerk = S1.bronwerk || { t: 0, in: {} };
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -366,6 +366,17 @@ function novaLive() {
   const ouder = S.earned - som; $('#nm-ouder-r').hidden = ouder < 1; $('#nm-ouder').textContent = fmt(ouder);
   $('#nm-tot').textContent = fmt(S.earned);
 }
+function jaarHTML() {
+  const J = D.JAAR, r = S.jaar || 0, kan = E.jaarKlaar(S), n = E.jaarWacht(S);
+  if (!r && !kan) return '';
+  const eff = x => `Nova bij Hergroei +${Math.round(J.nova * x * 100)}%, alle productie +${Math.round(J.prod * x * 100)}%`;
+  let h = `<div class="kaart hg"><h2>Jaarringen</h2>${r ? `<p class="groot">${r} ${r === 1 ? 'ring' : 'ringen'}: ${eff(r)}.</p>` : ''}
+    <p>Een Jaarring zet de oude boom een ring dikker. Nova en de hele Sterrenstam gaan terug naar nul en het dorp begint opnieuw. De ringen blijven voor altijd, net als prestaties, de Lomari, relieken, het Bronwerk, De oude bron en Beproevingen.</p>`;
+  if (!kan) return h + '<p class="nb">Een nieuwe Jaarring kan zodra de hele Sterrenstam weer gegroeid is.</p></div>';
+  h += n ? `<p>Nu levert een Jaarring <b>${n} ${n === 1 ? 'ring' : 'ringen'}</b> op (${S.nova} Nova). Daarna: ${eff(r + n)}.</p><button class="knop" data-jaar="1">Jaarring</button>`
+         : `<p class="nb">Voor de eerste ring heb je ${J.per} Nova nodig.</p>`;
+  return h + `<p class="nb">Ringen = √(Nova / ${J.per}), naar beneden afgerond. Meer Nova verzamelen voor je ringt, levert meer ringen op.</p></div>`;
+}
 function beproefHTML(klaar) {
   const B0 = D.BEPROEF, nu = S.beproef;
   if (!E.beproefOpen(S) && !nu) return `<div class="kaart"><h2>Beproevingen</h2><p class="nb">Na ${D.BEPROEF_VANAF} keer Hergroei kun je een ronde met een beperking spelen, voor een beloning die altijd blijft. Nu: ${S.runs} van ${D.BEPROEF_VANAF}.</p></div>`;
@@ -382,7 +393,7 @@ function paneelStam() {
     <p>Begin het dorp opnieuw. Je houdt je Nova, de Sterrenstam en je prestaties. Gebouwen, voorraad, upgrades en de districten na de eerste drie beginnen opnieuw.</p>
     ${klaar ? `<p class="groot">Hergroei levert nu <b id="wacht">${wacht}</b> Nova op</p>${E.mods(S).veyra ? `<p>Veyra: deze ronde ${(wacht / Math.max(.1, (Date.now() - S.rondeStart) / 3600)).toFixed(2).replace('.', ',')} Nova per uur. Zolang dit stijgt, loont doorspelen.</p>` : ''}<button class="knop" id="hergroei">Hergroei</button>`
       : `<p>Beschikbaar na ${fmt(BAL.hergroeiEnergie)} Flohara-energie in deze ronde.</p><div class="bar"><i id="ebar" style="width:${Math.min(100, S.energieTot / BAL.hergroeiEnergie * 100)}%"></i></div><small class="nb" id="etekst">${fmt(S.energieTot)} van ${fmt(BAL.hergroeiEnergie)}</small>`}
-    <p class="nb" id="nwaarde">${novaRegel()}</p>${novaUitleg()}</div>${beproefHTML(klaar)}<h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
+    <p class="nb" id="nwaarde">${novaRegel()}</p>${novaUitleg()}</div>${beproefHTML(klaar)}${jaarHTML()}<h2>De Sterrenstam</h2><p class="intro">Nova: ${S.nova} verdiend, ${vrij} vrij om uit te geven. Uitgeven verlaagt je bonus van +${Math.round(S.nova * BAL.novaPct * 100)}% niet.</p>`;
   const takken = [...new Set(D.STAR.map(s => s.tak))];
   for (const t of takken) {
     h += `<h3 class="tak">${t}</h3>` + D.STAR.filter(s => s.tak === t).map(s => {
@@ -419,7 +430,7 @@ function paneelInstel() {
 function maakSig() {
   return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
-    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.beproef, S.beproefKlaar, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
+    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.beproef, S.beproefKlaar, S.jaar, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
 }
 function render() {
   sig = maakSig();
@@ -587,6 +598,11 @@ $('#paneel').addEventListener('click', e => {
     const x = D.BEPROEF[d.beproef], n = E.novaWacht(S);
     dialoog(x.naam, `<p>Hergroei nu met <b>${n} Nova</b>. De nieuwe ronde heeft een beperking: ${x.tekst.toLowerCase()}.</p><p>Haal je in die ronde de Hergroei, dan krijg je voor altijd: ${x.beloning.toLowerCase()}. Je kunt de beproeving altijd stoppen.</p>`,
       'Hergroei hiermee', () => { S = E.hergroei(S, d.beproef); sel = 'Takelom'; tab = 'stam'; after(); toast(`Hergroei: ${S.nova} Nova · beproeving ${x.naam}`); });
+  }
+  else if (d.jaar) {
+    const n = E.jaarWacht(S);
+    dialoog('Jaarring', `<p>Je krijgt <b>${n} ${n === 1 ? 'ring' : 'ringen'}</b>. Je ${S.nova} Nova en de hele Sterrenstam gaan terug naar nul, en het dorp begint opnieuw.</p><p>Elke ring geeft voor altijd +${Math.round(D.JAAR.nova * 100)}% Nova bij Hergroei en +${Math.round(D.JAAR.prod * 100)}% op alle productie.</p>`,
+      'Zet de Jaarring', () => { S = E.jaarring(S); sel = 'Takelom'; tab = 'stam'; after(); toast(`Jaarring: ${S.jaar} ${S.jaar === 1 ? 'ring' : 'ringen'}`); });
   }
   else if (d.beproefstop) {
     dialoog('Beproeving stoppen?', `<p>De beperking verdwijnt meteen. Je krijgt dan geen beloning voor ${D.BEPROEF[S.beproef].naam}.</p>`, 'Stop', () => { S.beproef = null; after(); toast('De beproeving is gestopt'); });

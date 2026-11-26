@@ -80,6 +80,11 @@ window.DATA = (() => {
   // ook na Hergroei, dus een trede mag over meerdere rondes lopen. Elke trede +8% op alle productie; elke 5e trede ook +5% Nova.
   // Beproevingen (deel C): vanaf de derde Hergroei kun je een ronde met een beperking beginnen. Haal je in die ronde de
   // Hergroei, dan krijg je de beloning voor altijd. Stoppen mag; dan vervalt de beperking zonder beloning. Offline geldt de beperking niet.
+  // Jaarringen (deel C): de tweede laag. Staat de hele Sterrenstam, dan kun je een Jaarring zetten: Nova en de Sterrenstam
+  // gaan terug naar nul, het dorp begint opnieuw. Elke ring geeft voor altijd meer Nova bij Hergroei en meer productie.
+  // Je krijgt floor(√(Nova / per)) ringen. Blijft: ringen, prestaties, Lomari (Band en bomen), relieken, Bronwerk, De oude bron, Beproevingen, gaven.
+  const JAAR = { per: 150, nova: .15, prod: .1 };   // balanstest: eerste Sterrenstam vol na ~11 dagen, na 2 ringen weer vol na ~6 dagen
+  const jaarFormule = nova => Math.floor(Math.sqrt(nova / JAAR.per));
   const BEPROEF_VANAF = 3;
   const BEPROEF = {
     verband: { naam: 'Losse draden',   tekst: 'Verbanden werken niet', beloning: 'Verband-bonussen +15%', fx: [{ t: 'verband', plus: .15 }] },
@@ -289,5 +294,5 @@ window.DATA = (() => {
     { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
   ];
 
-  return { BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();
