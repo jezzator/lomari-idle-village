@@ -26,7 +26,7 @@ window.MUZIEK = (() => {
   const later = (f, ms) => { const id = setTimeout(() => { timers = timers.filter(x => x !== id); f(); }, ms); timers.push(id); };
 
   // Eigen nummers (mp3 in muziek/). Heeft dag of nacht geen nummers, dan speelt daar de gegenereerde muziek.
-  const NUMMERS = { dag: ['muziek/dag-1.mp3'], nacht: [] };
+  const NUMMERS = { dag: ['muziek/dag-1.mp3', 'muziek/dag-2.mp3', 'muziek/dag-3.mp3'], nacht: [] };
   let speler = null, bg = null, nummer = '';
   const lijst = () => NUMMERS[nacht ? 'nacht' : 'dag'];
   const bestandModus = () => lijst().length > 0;
