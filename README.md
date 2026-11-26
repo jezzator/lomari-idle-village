@@ -12,6 +12,7 @@ Dit is een complete web-app (PWA) zonder build-stap. Zet hem online via https, d
 | `engine.js` | De rekenmotor (geen DOM): productie, kosten, opslag, offline, Hergroei |
 | `balans.js` | Computerspeler voor de balanstest (Instellingen → Balanstest) |
 | `ui.js`, `index.html` | De interface |
+| `muziek.js` | Muziek: klankvelden met Web Audio, dag en nacht |
 | `sw.js`, `manifest.webmanifest`, `icoon-*.png` | Installeerbaar en offline |
 | `portret/`, `dorp.jpg` | Afbeeldingen |
 | `tools/simulatie-v1.py` | De eerste balanssimulatie (Python), uit het ontwerp |

@@ -391,7 +391,11 @@ function paneelPrest() {
 }
 function paneelInstel() {
   const m = E.mods(S);
-  return `<div class="kaart"><h2>Offline</h2>${(() => { const o = E.offlineInfo(S); return `<p>Terwijl je weg bent produceert het dorp ${Math.round(o.rend * 100)}% van normaal, maximaal ${o.limiet} uur, en nooit meer dan je opslag.${o.manden ? ' Je Verzamelmanden tikken door.' : ''} Meer halen: upgrades onder Offline, Yomi, en Lange nacht in de Sterrenstam.</p>`; })()}
+  const mz = S.instel.muziek ?? true, mv = Math.round((S.instel.volume ?? 0.5) * 100);
+  return `<div class="kaart"><h2>Muziek</h2><p>Zachte klankvelden uit het woud, overdag warmer en 's nachts stiller. Ze zwijgen als de app op de achtergrond staat.</p>
+    <label class="sw"><input type="checkbox" id="muz" ${mz ? 'checked' : ''}> Muziek aan</label>
+    <label class="sw">Volume <input type="range" id="muzvol" min="0" max="100" step="5" value="${mv}" style="flex:1;width:auto;height:auto" aria-label="Volume"></label></div>
+    <div class="kaart"><h2>Offline</h2>${(() => { const o = E.offlineInfo(S); return `<p>Terwijl je weg bent produceert het dorp ${Math.round(o.rend * 100)}% van normaal, maximaal ${o.limiet} uur, en nooit meer dan je opslag.${o.manden ? ' Je Verzamelmanden tikken door.' : ''} Meer halen: upgrades onder Offline, Yomi, en Lange nacht in de Sterrenstam.</p>`; })()}
     <label class="sw"><input type="checkbox" id="offm" ${S.instel.offlineMelding ? 'checked' : ''}> Overzicht tonen bij terugkomst</label></div>
     <div class="kaart"><h2>Opslaan</h2><p>Het spel slaat elke 10 seconden op in deze browser. Om op een ander apparaat verder te spelen: kopieer de code en plak hem daar.</p>
     <textarea id="code" rows="3" aria-label="Spelcode"></textarea>
@@ -448,6 +452,7 @@ function ververs() {
   const di = E.dagInfo(S), dg = $('#dag');
   dg.textContent = di.nacht ? `🌙 Nacht · tikken ×${String(BAL.nachtTik).replace('.', ',')} · dag over ${kort(di.rest)}` : `☀ Dag · nacht over ${kort(di.rest)}`;
   $('#plaatwrap').classList.toggle('nacht', di.nacht);
+  window.MUZIEK?.nacht(di.nacht);
   const bol = $('#bol'); if (S.bol) { bol.hidden = false; bol.style.left = S.bol.x + '%'; bol.style.top = S.bol.y + '%'; } else bol.hidden = true;
   const w = $('#wacht'); if (w) w.textContent = E.novaWacht(S);
   const nw = $('#nwaarde'); if (nw) nw.innerHTML = novaRegel();
@@ -594,8 +599,10 @@ $('#paneel').addEventListener('click', e => {
   }
 });
 $('#paneel').addEventListener('toggle', e => { const id = e.target.dataset?.boom; if (id) e.target.open ? openBoom.add(id) : openBoom.delete(id); }, true);
+$('#paneel').addEventListener('input', e => { if (e.target.id === 'muzvol') { S.instel.volume = e.target.value / 100; muziekInstel(); } });
 $('#paneel').addEventListener('change', e => {
   if (e.target.id === 'offm') { S.instel.offlineMelding = e.target.checked; bewaar(); }
+  else if (e.target.id === 'muz' || e.target.id === 'muzvol') { S.instel.muziek = $('#muz').checked; S.instel.volume = $('#muzvol').value / 100; muziekInstel(); bewaar(); }
   else if (e.target.dataset.wijs) { const id = e.target.dataset.wijs; if (E.wijs(S, id, e.target.value || null)) { const l = S.lom[id]; toast(l.reis > 0 ? `${E.lomDef(id).naam} gaat op weg naar ${l.d}` : l.d ? `${E.lomDef(id).naam} werkt nu in ${l.d}` : `${E.lomDef(id).naam} is vrij`); after(); } }
 });
 $('#bol').onclick = () => { const r = E.vangBol(S); if (r) toast(`Lichtbol: +${fmt(r.v)} ${RES[r.res].naam.toLowerCase()}`); ververs(); };
@@ -718,5 +725,7 @@ setInterval(() => {
 addEventListener('pagehide', bewaar);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { verborgen = true; bewaar(); } else { verborgen = false; const weg = (Date.now() - S.t) / 1000; if (weg > 60) { const o = E.offline(S, weg); toast(`Terug na ${duur(o.sec)}: het dorp heeft ${duur(o.eff)} doorgewerkt`); } vorige = performance.now(); } });
 render(); maten();
+function muziekInstel() { window.MUZIEK?.instel(S.instel.muziek ?? true, S.instel.volume ?? 0.5); }
+muziekInstel();
 if (!S.instel.gidsUit && GIDS.some(g => !g.klaar())) lade(true);
 }
