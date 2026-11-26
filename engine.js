@@ -15,7 +15,7 @@ window.ENGINE = (() => {
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
       klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
-      reliek: prev ? prev.reliek || {} : {}, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
+      reliek: prev ? prev.reliek || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
     S.r.hout = 30; S.r.voedsel = 150; S.n.bessen = 1;
@@ -131,6 +131,8 @@ window.ENGINE = (() => {
     }
     // Relieken van tochten: elke trede telt als één keer het effect
     for (const [id, n] of Object.entries(S.reliek || {})) for (let i = 0; i < n; i++) for (const e of D.RELIEK[id][2]) zet(e);
+    // Bronwerk: elke 5e trede +5% Nova
+    m.novaX *= (1 + D.BRONWERK.nova) ** Math.floor((S.bronwerk?.t || 0) / D.BRONWERK.novaElk);
     // Upgradebomen: gekochte knopen gelden altijd
     for (const id in S.lom || {}) for (const i of S.lom[id].boom || []) for (const e of LM.BOOM[id][i][2]) zet(e);
     // Actieve en ultieme vaardigheden die nu lopen
@@ -176,7 +178,7 @@ window.ENGINE = (() => {
 
   const achAantal = S => Object.values(S.ach).filter(Boolean).length;
   function globaal(S, m) {
-    return (1 + m.brug * S.n.brug) * (S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1) * 1.25 ** S.magie * (1 + BAL.novaPct * S.nova)
+    return (1 + m.brug * S.n.brug) * (S.n.oudebron ? 1 + .05 * S.fase.oudebron : 1) * (1 + D.BRONWERK.prod * (S.bronwerk?.t || 0)) * 1.25 ** S.magie * (1 + BAL.novaPct * S.nova)
       * (1 + .01 * achAantal(S)) * (1 + m.perDistrict * S.open.length) * (m.geenNacht ? 1 : gaveX(S));
   }
   const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)), 0);
@@ -525,6 +527,16 @@ window.ENGINE = (() => {
     if (n < D.RELIEK_MAX && Math.random() < T.reliek) { S.reliek[id] = n + 1; reliek = true; }
     return { t: 'tocht', id, soort: T.naam, buit, reliek, trede: S.reliek[id] || 0 };
   }
+  // Bronwerk: zeldzame grondstoffen inleggen in De oude bron (fase 5). Ingelegd blijft bewaard, ook na Hergroei.
+  const bronwerkOpen = S => !!S.n.oudebron && S.fase.oudebron >= 5 && (S.bronwerk?.t || 0) < D.BRONWERK.max;
+  function leg(S, k) {
+    if (!bronwerkOpen(S)) return 0;
+    const bw = S.bronwerk, kost = D.bronwerkKost(bw.t), v = Math.min(Math.floor(S.r[k]), kost[k] - (bw.in[k] || 0));
+    if (!(v > 0)) return 0;
+    S.r[k] -= v; bw.in[k] = (bw.in[k] || 0) + v;
+    if (Object.entries(kost).every(([r, n]) => (bw.in[r] || 0) >= n)) { bw.t++; bw.in = {}; }
+    return v;
+  }
   function kiesVondst(S, i, keuze) {
     const v = S.vondsten[i]; if (!v) return null;
     S.vondsten.splice(i, 1);
@@ -631,7 +643,7 @@ window.ENGINE = (() => {
     magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
-    actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
+    bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
     runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };

@@ -76,6 +76,10 @@ window.DATA = (() => {
     kavo:   ['Doorgangssteen',    'Reistijd −8%',                        [{ t: 'reis', x: .92 }]],
     veyra:  ['Bronsteen',         'Hergroei +2% Nova',                   [{ t: 'nova', x: 1.02 }]],
   };
+  // Bronwerk (deel C): staat De oude bron op fase 5, dan neemt hij zeldzame grondstoffen op. Wat je inlegt blijft bewaard,
+  // ook na Hergroei, dus een trede mag over meerdere rondes lopen. Elke trede +8% op alle productie; elke 5e trede ook +5% Nova.
+  const BRONWERK = { max: 20, prod: .08, nova: .05, novaElk: 5, groei: 1.35, kost: { nevelparel: 40, kroonhars: 30, wortelgloed: 12 } };
+  const bronwerkKost = t => Object.fromEntries(Object.entries(BRONWERK.kost).map(([k, v]) => [k, Math.ceil(v * BRONWERK.groei ** t)]));
   const GAVE_MAX = 5, GAVE_START = { groei: 2 }, GAVE_GEBKANS = .25, GAVE_KOOPGROEI = 1.5;   // elke aankoop ×1,5 duurder; terug naar begin bij Hergroei
   // Runen (deel B): één per gebouw vanaf fase 3, gemaakt van Kristallen. De prijs stijgt met elke rune die je al hebt. Verdwijnen bij Hergroei.
   const RUNE = {
@@ -274,5 +278,5 @@ window.DATA = (() => {
     { id: 't2', tak: 'Verre paden', naam: 'Twee paden',  tekst: 'Twee Lomari tegelijk op tocht', k: 120, eis: 't1', fx: [{ t: 'tocht', plus: 1 }] },
   ];
 
-  return { TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

@@ -39,7 +39,7 @@ function laad() {
 }
 function herstel(x) {
   const S0 = E.nieuw(); const S1 = Object.assign(S0, x);
-  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = []; S1.gaveKocht = S1.gaveKocht || {}; S1.reliek = S1.reliek || {};
+  for (const k of ['lom', 'ooit', 'vondstBonus']) S1[k] = S1[k] || {}; S1.vondsten = S1.vondsten || []; S1.vondstTot = S1.vondstTot || 0; S1.vondstT = S1.vondstT || 0; S1.lichtT = S1.lichtT || 0; S1.gebeurtenissen = S1.gebeurtenissen || 0; S1.geb = S1.geb || []; S1.bouw = S1.bouw || []; S1.rune = S1.rune || {}; S1.act = S1.act || {}; S1.bouwKlaar = S1.bouwKlaar || []; S1.klok = S1.klok || 0; S1.gebT = S1.gebT || 0; S1.gave = S1.gave || { ...D.GAVE_START }; S1.gaveAan = S1.gaveAan || null; S1.gaveNieuw = []; S1.gaveKocht = S1.gaveKocht || {}; S1.reliek = S1.reliek || {}; S1.bronwerk = S1.bronwerk || { t: 0, in: {} };
   E.RK.forEach(k => S1.r[k] = S1.r[k] || 0); E.BK.forEach(b => { S1.n[b] = S1.n[b] || 0; S1.fase[b] = S1.fase[b] || 1; });
   return S1;
 }
@@ -165,7 +165,7 @@ function paneelDorp() {
     else if (y.brug) wat = `<b>+${Math.round(m.brug * 100)}% op alle productie</b> per brug, en elke brug verbindt twee districten.`;
     else if (y.bron) wat = n ? `<b>Fase ${f} van 5:</b> +${5 * f}% op alle productie. Na elke Hergroei blijft de bron staan en groeit hij een fase.` : '<b>+5% op alle productie per fase.</b> Je bouwt er maar één. Hij blijft na elke Hergroei staan en groeit dan een fase.';
     if (y.w) wat += ` · ${y.w} ${y.w > 1 ? 'werkers' : 'werker'} per stuk`;
-    let fz = '';
+    let fz = y.bron && n && f >= 5 ? bronwerkHTML() : '';
     if (y.p && f < 5) {
       const dr = E.faseDrempel(S, b), naar = `<span class="fz">${gebouwSvg(b, f)}<span>→</span>${gebouwSvg(b, f + 1)}</span>`;
       const effect = n ? `Alle ${n} ${y.naam.toLowerCase()} maken dan ×2: van ${rs(ps, n)} naar ${rs(ps, 2 * n)} per seconde.` : 'De productie van dit gebouw verdubbelt.';
@@ -287,6 +287,16 @@ function runeHTML(b) {
   return `<div class="runen"><b>Rune:</b> ${nu ? `${D.RUNE[nu].naam} (${D.RUNE[nu].tekst.toLowerCase()})` : 'nog geen'}<div class="rij">${Object.entries(D.RUNE).filter(([r]) => r !== nu).map(([r, x]) =>
     `<button class="upl" data-rune="${b}:${r}" title="${x.tekst}">${x.naam}: ${x.tekst.toLowerCase()} <span class="kost">${kost(E.runeKost(S, r))}</span></button>`).join('')}</div></div>`;
 }
+function bronwerkHTML() {
+  const W = D.BRONWERK, t = S.bronwerk.t, nova = Math.floor(t / W.novaElk);
+  let h = `<div class="fase"><div style="grid-column:1/3"><b>Bronwerk · trede ${t} van ${W.max}</b><br>Nu: +${Math.round(W.prod * t * 100)}% op alle productie${nova ? ` en +${Math.round(((1 + W.nova) ** nova - 1) * 100)}% Nova bij Hergroei` : ''}.`;
+  if (t >= W.max) return h + ' Het Bronwerk is voltooid.</div></div>';
+  const kost = D.bronwerkKost(t), volgende = (t + 1) % W.novaElk === 0;
+  h += ` Leg zeldzame grondstoffen in de bron. Wat je inlegt blijft bewaard, ook na Hergroei.<br><b>Trede ${t + 1}:</b> +${Math.round(W.prod * 100)}% op alle productie${volgende ? `, en +${Math.round(W.nova * 100)}% Nova` : ''}.</div>`;
+  h += Object.entries(kost).map(([k, n]) => { const in_ = S.bronwerk.in[k] || 0;
+    return `<div style="grid-column:1/3"><small>${RES[k].naam}: ${fmt(in_)} van ${fmt(n)} ingelegd</small><div class="bar"><i style="width:${Math.min(100, in_ / n * 100)}%"></i></div>${in_ < n ? `<button class="knop klein" data-leg="${k}" ${S.r[k] >= 1 ? '' : 'disabled'}>Leg ${RES[k].naam.toLowerCase()} in</button>` : ''}</div>`; }).join('');
+  return h + '</div>';
+}
 function tochtHTML(id, m) {
   const [naam, tekst] = D.RELIEK[id], n = S.reliek[id] || 0;
   let h = n ? `<p class="gave"><b>Reliek:</b> ${naam} ${D.ROMEIN[n - 1]} · ${tekst} per trede${n >= D.RELIEK_MAX ? ' · vol' : ''}</p>` : '';
@@ -395,7 +405,7 @@ function paneelInstel() {
 function maakSig() {
   return JSON.stringify([tab, sel, modus, S.n, S.fase, S.open, Object.keys(S.up).length, S.magie, S.amb, S.star, S.nova, S.novaUit,
     E.achAantal(S), E.hergroeiKlaar(S), GIDS.findIndex(g => !g.klaar()), S.instel.gidsUit, D.U.filter(u => E.eisOk(S, u.eis)).length,
-    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
+    Object.entries(S.lom).map(([k, l]) => k + (l.d || '') + l.band + (l.reis > 0) + (l.tocht?.soort || '')).join(), S.reliek, E.opTocht(S).length, S.bronwerk, S.vondsten.length, E.mods(S).verbanden.join(), S.geb.map(g => g.k).join(), E.isNacht(S), S.bouw.map(x => x.b).join(), S.rune, Object.values(S.lom).map(l => (l.boom || []).length).join()]);
 }
 function render() {
   sig = maakSig();
@@ -539,6 +549,7 @@ $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;
   if (d.act || d.ult) { const id = d.act || d.ult, ult = !!d.ult, r = E.gebruik(S, id, ult); if (r) { const A = LM.ACT[id];
       toast(`${E.lomDef(id).naam}: ${ult ? 'ultieme ' : ''}${A.naam}${r.vondsten ? ` · ${r.vondsten} verborgen ${r.vondsten > 1 ? 'plekken' : 'plek'}` : r.res ? ` · +${fmt(r.v)} ${RES[r.res].naam.toLowerCase()}` : r.geb !== undefined ? ` · ${r.geb} ${r.geb === 1 ? 'gebeurtenis' : 'gebeurtenissen'} voorbij` : r.reis !== undefined ? ` · ${r.reis} aangekomen` : r.bouw !== undefined ? ` · ${r.bouw} ${r.bouw === 1 ? 'upgrade' : 'upgrades'} sneller` : ''}`); after(); } }
+  else if (d.leg) { const t0 = S.bronwerk.t, v = E.leg(S, d.leg); if (v) { toast(S.bronwerk.t > t0 ? `Het Bronwerk bereikt trede ${S.bronwerk.t}` : `${fmt(v)} ${RES[d.leg].naam.toLowerCase()} in de bron gelegd`); after(); } }
   else if (d.tocht) { const [id, k] = d.tocht.split(':'); if (E.stuur(S, id, k)) { toast(`${E.lomDef(id).naam} vertrekt op een ${D.TOCHT[k].naam.toLowerCase()}`); after(); } }
   else if (d.doorbreek) { if (E.doorbreek(S, d.doorbreek)) { toast(`${E.lomDef(d.doorbreek).naam} bereikt Band ${S.lom[d.doorbreek].band}`); after(); } }
   else if (d.knoop) { const [id, i] = d.knoop.split(':'); openBoom.add(id); if (E.koopKnoop(S, id, +i)) { toast(`${E.lomDef(id).naam} leert ${LM.BOOM[id][+i][0]}`); after(); } }
