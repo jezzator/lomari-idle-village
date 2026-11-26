@@ -177,8 +177,15 @@ window.ENGINE = (() => {
   }
   const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)), 0);
   const banen = S => BK.reduce((a, b) => a + S.n[b] * (B[b].w || 0), 0);
-  const cap = (S, k, m) => (RES[k].cap + BK.reduce((a, b) => a + (B[b].o?.[k] || 0) * (BAL.opslagGroei ** S.n[b] - 1) / (BAL.opslagGroei - 1), 0))
-    * m.opslag * (m.capD[k] || 1) * (m.capRes[k] || 1);
+  // Opslag = basis + opslaggebouwen + een buffer van BAL.opslagUren productie, alles × opslagbonussen
+  const cap = (S, k, m, R = rates(S, m)) => (RES[k].cap + BK.reduce((a, b) => a + (B[b].o?.[k] || 0) * (BAL.opslagGroei ** S.n[b] - 1) / (BAL.opslagGroei - 1), 0)
+    + R.prod[k] * 3600 * BAL.opslagUren) * m.opslag * (m.capD[k] || 1) * (m.capRes[k] || 1);
+  // Grondstof erbij: tot de opslaggrens; offline (m.geenCap) zonder grens. Wat al boven de grens zit, blijft staan.
+  function vul(S, k, v, m, R) {
+    const voor = S.r[k], na = Math.max(0, voor + v);
+    S.r[k] = m.geenCap || v <= 0 ? na : Math.max(Math.min(voor, na), Math.min(cap(S, k, m, R), na));
+    return S.r[k] - voor;
+  }
 
   // Productie en verbruik per seconde. Ketens kunnen stilvallen zonder input.
   function rates(S, m = mods(S), dt = 1) {
@@ -215,7 +222,7 @@ window.ENGINE = (() => {
     for (const k of RK) {
       const eff = rendement * (m.geenNacht && k === 'energie' ? m.offlineEnergie : 1);
       const net = (R.prod[k] - R.use[k]) * eff;
-      S.r[k] = Math.max(0, Math.min(cap(S, k, m), S.r[k] + net * dt));
+      vul(S, k, net * dt, m, R);
       if (R.prod[k] > 0) {
         const gemaakt = R.prod[k] * eff * dt;
         S.earned += RES[k].waarde * gemaakt; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + gemaakt;
@@ -320,7 +327,7 @@ window.ENGINE = (() => {
     if (A.direct === 'vondst') { const opties = RK.filter(k => !RES[k].zeldzaam && (k !== 'energie' || S.open.includes('Voelari')));
       for (let i = 0; i < (ult ? 3 : 1); i++) { S.vondsten.push({ res: opties[Math.floor(Math.random() * opties.length)] }); S.vondstTot++; } uit.vondsten = ult ? 3 : 1; }
     else if (A.direct === 'bol') { const R = rates(S, m), opt = RK.filter(k => R.prod[k] > 0); if (opt.length) { const k = opt[Math.floor(Math.random() * opt.length)], voor = S.r[k];
-      S.r[k] = Math.min(cap(S, k, m), S.r[k] + R.prod[k] * C.lichtBuitSec * m.lichtX * (ult ? 3 : 1)); uit.res = k; uit.v = S.r[k] - voor; } }
+      uit.res = k; uit.v = vul(S, k, R.prod[k] * C.lichtBuitSec * m.lichtX * (ult ? 3 : 1), m, R); } }
     else if (A.direct === 'bouw') { for (const x of S.bouw || []) x.over *= ult ? .25 : .75; uit.bouw = (S.bouw || []).length; }
     else if (A.direct === 'herstel') { uit.geb = (S.geb || []).length; S.geb = []; }
     else if (A.direct === 'reis') { uit.reis = Object.values(S.lom).filter(l => l.reis > 0).length; for (const l of Object.values(S.lom)) l.reis = 0; }
@@ -398,10 +405,10 @@ window.ENGINE = (() => {
     for (const k of ['hout', 'bladeren', ...m.tikRes]) uit[k] = Math.max(1, R.prod[k] * m.tikSec) * f;
     return uit;
   }
-  function verzamel(S, keer = 1, x = 1) {
-    const m = mods(S), w = tikWaarde(S, m, x), uit = {};
+  function verzamel(S, keer = 1, x = 1, geenCap = false) {
+    const m = mods(S); m.geenCap = geenCap; const w = tikWaarde(S, m, x), uit = {};
     for (const [k, v0] of Object.entries(w)) {
-      const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + v0 * keer); uit[k] = S.r[k] - voor;
+      uit[k] = vul(S, k, v0 * keer, m);
       S.earned += uit[k] * RES[k].waarde; (S.earnedPer = S.earnedPer || {})[k] = (S.earnedPer[k] || 0) + uit[k]; if (k === 'hout') S.houtTot += uit[k];
     }
     return uit;
@@ -488,14 +495,14 @@ window.ENGINE = (() => {
     S.vondsten.splice(i, 1);
     if (keuze === 'bonus') { S.vondstBonus[v.res] = (S.vondstBonus[v.res] || 0) + C.vondstBonus; return { bonus: v.res }; }
     const m = mods(S), R = rates(S, m), uit = {};
-    for (const k of RK) if (R.prod[k] > 0) { const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + R.prod[k] * C.vondstBuitSec); uit[k] = S.r[k] - voor; }
+    for (const k of RK) if (R.prod[k] > 0) uit[k] = vul(S, k, R.prod[k] * C.vondstBuitSec, m, R);
     return { buit: uit };
   }
   function vangBol(S) {
     if (!S.bol) return null; S.bol = null;
     const m = mods(S), R = rates(S, m), opt = RK.filter(k => R.prod[k] > 0); if (!opt.length) return null;
     const k = opt[Math.floor(Math.random() * opt.length)], v = R.prod[k] * C.lichtBuitSec * m.lichtX;
-    const voor = S.r[k]; S.r[k] = Math.min(cap(S, k, m), S.r[k] + v); return { res: k, v: S.r[k] - voor };
+    return { res: k, v: vul(S, k, v, m, R) };
   }
 
   // ---------- dag, nacht en bosgebeurtenissen (alleen als je speelt) ----------
@@ -513,7 +520,7 @@ window.ENGINE = (() => {
     const duur = Math.round(BAL.gebDuur * m.herstel / (x.tev ? m.tevHerstel : 1));
     S.gebeurtenissen = (S.gebeurtenissen || 0) + 1;
     const g = { k: S.gebeurtenissen, id, over: duur, duur, ...(x.tev ? { tev: true, d: doel } : { b: doel, d: B[doel].d }) };
-    if (id === 'storm' && m.voorhoede) { const R = rates(S, m), voor = S.r.hout; S.r.hout = Math.min(cap(S, 'hout', m), S.r.hout + R.prod.hout * 3600); g.buit = S.r.hout - voor; }
+    if (id === 'storm' && m.voorhoede) { const R = rates(S, m); g.buit = vul(S, 'hout', R.prod.hout * 3600, m, R); }
     S.geb.push(g); return g;
   }
   function wereld(S, dt, m = mods(S)) {
@@ -567,9 +574,9 @@ window.ENGINE = (() => {
     const m = mods(S), limiet = Math.min(24, m.offline), eff = Math.min(sec, limiet * 3600), voor = { ...S.r }, rend = Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff);
     const stappen = Math.max(1, Math.min(60, Math.ceil(eff / 60))), vondstVoor = S.vondstTot, ev = [];
     S.geb = []; S.gebT = 0;   // gebeurtenissen lossen zich op terwijl je weg bent; er komen geen nieuwe
-    for (let i = 0; i < stappen; i++) { const mm = mods(S); mm.geenNacht = true; tick(S, eff / stappen, rend, mm); ev.push(...lomTick(S, eff / stappen, mm, true)); }
+    for (let i = 0; i < stappen; i++) { const mm = mods(S); mm.geenNacht = true; mm.geenCap = true; tick(S, eff / stappen, rend, mm); ev.push(...lomTick(S, eff / stappen, mm, true)); }
     S.klok = (S.klok || 0) + sec;
-    if (m.nachtmanden && m.auto.verzamel) verzamel(S, Math.floor(eff / m.mandSec) * rend);
+    if (m.nachtmanden && m.auto.verzamel) verzamel(S, Math.floor(eff / m.mandSec) * rend, 1, true);
     const winst = {}; RK.forEach(k => winst[k] = S.r[k] - voor[k]);
     return { sec, eff, winst, limiet, rend, vondsten: S.vondstTot - vondstVoor, ev };
   }
@@ -583,7 +590,7 @@ window.ENGINE = (() => {
   }
   function waardeRate(S, m = mods(S)) { const R = rates(S, m); return RK.reduce((a, k) => a + RES[k].waarde * (R.prod[k] - R.use[k]), 0); }
 
-  return { RK, BK, nieuw, mods, rates, tick, cap: (S, k) => cap(S, k, mods(S)), kostVan, kostVanN, maxN, faseKost, faseKlaar,
+  return { RK, BK, nieuw, mods, rates, tick, cap: (S, k, R) => { const m = mods(S); return cap(S, k, m, R || rates(S, m)); }, kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
     magieOpen, koopMagie, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,

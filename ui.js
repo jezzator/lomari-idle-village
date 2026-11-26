@@ -66,7 +66,7 @@ function balk() {
   if (!$('#res').children.length) $('#res').innerHTML = E.RK.map(k => `<button class="rs" data-res="${k}" aria-label="${RES[k].naam}: waar komt het vandaan?"><span class="rn">${ico(k)}${RES[k].naam}</span>
       <b></b><small></small><em></em><span class="vul"><i></i></span><span class="tijd"></span></button>`).join('');
   for (const k of E.RK) {
-    const el = $(`[data-res="${k}"]`), c = E.cap(S, k), net = R.prod[k] - R.use[k];
+    const el = $(`[data-res="${k}"]`), c = E.cap(S, k, R), net = R.prod[k] - R.use[k];
     el.hidden = !!RES[k].zeldzaam && !S.open.includes(RES[k].zeldzaam) && S.r[k] <= 0;
     el.classList.toggle('vol', S.r[k] >= c * .999); el.classList.toggle('bijna', S.r[k] >= c * .9);
     el.querySelector('.vul i').style.width = Math.min(100, S.r[k] / c * 100) + '%';
@@ -450,8 +450,8 @@ function uitleg(k) {
   const m = E.mods(S), R = E.rates(S, m);
   const makers = E.BK.filter(b => B[b].p?.[k]), opslag = E.BK.filter(b => B[b].o?.[k]), verbruik = E.BK.filter(b => B[b].c?.[k] && S.n[b]);
   const rij = b => `<li>${B[b].naam} in ${B[b].d}: ${S.n[b] ? S.n[b] + ' gebouwd' : S.open.includes(B[b].d) ? 'nog niet gebouwd' : `${B[b].d} is nog gesloten`}</li>`;
-  let h = `<p>Je hebt <b>${fmt(S.r[k])}</b> van maximaal ${fmt(E.cap(S, k))}. Er komt ${fmtR(R.prod[k])} per seconde bij${R.use[k] ? ` en gaat ${fmtR(R.use[k])} per seconde af` : ''}.
-    ${(() => { const net = R.prod[k] - R.use[k], c = E.cap(S, k); return S.r[k] >= c * .999 ? '<b>Je opslag is vol:</b> wat er nu bijkomt gaat verloren. Bouw meer opslag of geef het uit.' : net > 1e-9 ? `Je opslag is vol over <b>${duur((c - S.r[k]) / net)}</b>.` : net < -1e-9 ? `Bij dit verbruik is het op over <b>${duur(S.r[k] / -net)}</b>.` : ''; })()}</p>
+  let h = `<p>Je hebt <b>${fmt(S.r[k])}</b> van maximaal ${fmt(E.cap(S, k, R))}. Er komt ${fmtR(R.prod[k])} per seconde bij${R.use[k] ? ` en gaat ${fmtR(R.use[k])} per seconde af` : ''}. Je opslag groeit mee: er past altijd minstens ${BAL.opslagUren === 1 ? 'een uur' : BAL.opslagUren + ' uur'} van je eigen productie in.
+    ${(() => { const net = R.prod[k] - R.use[k], c = E.cap(S, k, R); return S.r[k] >= c * .999 ? '<b>Je opslag is vol:</b> wat er nu bijkomt gaat verloren. Bouw meer opslag of geef het uit. Wat je offline verdient komt wel altijd binnen.' : net > 1e-9 ? `Je opslag is vol over <b>${duur((c - S.r[k]) / net)}</b>.` : net < -1e-9 ? `Bij dit verbruik is het op over <b>${duur(S.r[k] / -net)}</b>.` : ''; })()}</p>
     <p>Nodig voor ${WAARVOOR[k]}.</p>
     <h3>Gemaakt door</h3><ul>${makers.map(rij).join('')}</ul>
     ${k === 'hout' || k === 'bladeren' ? '<p class="nb">Ook de knop Verzamelen geeft hout en bladeren.</p>' : ''}

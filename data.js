@@ -19,6 +19,7 @@ window.DATA = (() => {
   const BAL = {
     kostGroei: 1.17,            // prijs n-de exemplaar = basis × 1,17^n
     opslagGroei: 1.12,          // elk volgend opslaggebouw 12% groter
+    opslagUren: 1,              // opslag past altijd minstens zoveel uur van je eigen productie (offline geen grens)
     productieSchaal: 0.3,
     onderhoud: 0.012,           // voedsel/s per bewoner
     startBedden: 4,
@@ -62,7 +63,7 @@ window.DATA = (() => {
     instorting: { naam: 'Instorting',    doel: ['groeve', 'tunnel', 'kristgrot'], tekst: 'Een gang stort in' },
     onweer:     { naam: 'Onweersnacht',  tev: true, nacht: true, tekst: 'Donder houdt de bewoners wakker' },
   };
-  const novaDeler = 5e10, novaFormule = earned => Math.floor(3 * Math.cbrt(earned / novaDeler));
+  const novaDeler = 2e11, novaFormule = earned => Math.floor(3 * Math.cbrt(earned / novaDeler));
   const novaWaarde = n => (n / 3) ** 3 * novaDeler;   // waarde die nodig is voor n Nova (zonder bonussen)
   const magieKost = k => ({ kristal: 40 * 4 ** k, energie: 25 * 4 ** k });
 
