@@ -26,9 +26,17 @@ window.MUZIEK = (() => {
   const later = (f, ms) => { const id = setTimeout(() => { timers = timers.filter(x => x !== id); f(); }, ms); timers.push(id); };
 
   // Eigen nummers (mp3 in muziek/). Heeft dag of nacht geen nummers, dan speelt daar de gegenereerde muziek.
-  const NUMMERS = { dag: ['muziek/dag-1.mp3', 'muziek/dag-2.mp3', 'muziek/dag-3.mp3'], nacht: ['muziek/nacht-1.mp3', 'muziek/nacht-2.mp3', 'muziek/nacht-3.mp3'] };
+  // Per nummer gemeten: s = seconden stilte aan het begin (overslaan), o = lengte van het natuurlijke slot (daar begint de overgang).
+  const NUMMERS = {
+    dag: [{ f: 'muziek/dag-1.mp3', s: 0.5, o: 3 }, { f: 'muziek/dag-2.mp3', s: 1, o: 5 }, { f: 'muziek/dag-3.mp3', s: 2, o: 3 }],
+    nacht: [{ f: 'muziek/nacht-1.mp3', s: 1.5, o: 8.5 }, { f: 'muziek/nacht-2.mp3', s: 2.5, o: 7 }, { f: 'muziek/nacht-3.mp3', s: 2.5, o: 16.5 }]
+  };
   // Twee spelers om en om: het volgende nummer begint al terwijl het vorige wegebt, zodat er nooit stilte valt.
-  const OVER = 8, LUID = 1.6;
+  const LUID = 1.6;
+  // Lengte van de overgang: het slot van het nummer plus wat ruimte, minstens 10 s.
+  const overLengte = n => Math.max(10, (n?.o || 0) + 5);
+  // Gelijk-vermogen-curven: het geheel blijft even luid terwijl het ene nummer weg- en het andere opkomt.
+  const curve = (van, naar, stappen = 64) => Float32Array.from({ length: stappen }, (_, i) => { const x = i / (stappen - 1); return van + (naar - van) * (naar > van ? Math.sin(x * Math.PI / 2) : 1 - Math.cos(x * Math.PI / 2)); });
   let decks = [], actief = 0, nummer = '';
   const lijst = () => NUMMERS[nacht ? 'nacht' : 'dag'];
   const bestandModus = () => lijst().length > 0;
@@ -37,7 +45,7 @@ window.MUZIEK = (() => {
     for (let i = 0; i < 2; i++) {
       const a = new Audio(), g = ctx.createGain(); a.preload = 'auto'; g.gain.value = 0;
       ctx.createMediaElementSource(a).connect(g); g.connect(uit);
-      a.addEventListener('timeupdate', () => { if (i === actief && !a.dataset.over && aan && !verborgen && a.duration && a.duration - a.currentTime < OVER) { a.dataset.over = 1; overvloei(OVER); } });
+      a.addEventListener('timeupdate', () => { if (i === actief && !a.dataset.over && aan && !verborgen && a.duration && a.duration - a.currentTime < overLengte(nummer)) { a.dataset.over = 1; overvloei(overLengte(nummer)); } });
       a.addEventListener('ended', () => { if (i === actief && !a.dataset.over && aan && !verborgen) overvloei(1); });
       a.addEventListener('error', () => { if (i !== actief) return; NUMMERS.dag = NUMMERS.dag.filter(x => x !== nummer); NUMMERS.nacht = NUMMERS.nacht.filter(x => x !== nummer); if (aan && !verborgen) overvloei(1); });
       decks.push({ a, g });
@@ -48,15 +56,15 @@ window.MUZIEK = (() => {
     if (!decks.length) maakSpeler();
     const t = ctx.currentTime, oud = decks[actief];
     if (!oud.a.paused) {
-      oud.g.gain.cancelScheduledValues(t); oud.g.gain.setValueAtTime(oud.g.gain.value, t); oud.g.gain.linearRampToValueAtTime(0, t + sec);
+      oud.g.gain.cancelScheduledValues(t); oud.g.gain.setValueCurveAtTime(curve(oud.g.gain.value, 0), t, sec);
       const a = oud.a; setTimeout(() => { if (decks[actief].a !== a) a.pause(); }, sec * 1000 + 300);
     }
     const l = lijst();
     if (!l.length) { stopLussen(); stuk = null; maat(); return; }
     let n; do n = kies(l); while (l.length > 1 && n === nummer);
     actief = 1 - actief; nummer = n;
-    const nw = decks[actief]; nw.a.pause(); nw.a.src = n; delete nw.a.dataset.over;
-    nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueAtTime(0, t); nw.g.gain.linearRampToValueAtTime(LUID, t + Math.max(1, sec * 0.6));
+    const nw = decks[actief]; nw.a.pause(); nw.a.src = n.f + '#t=' + n.s; delete nw.a.dataset.over;
+    nw.g.gain.cancelScheduledValues(t); nw.g.gain.setValueCurveAtTime(curve(0, LUID), t, Math.max(1, sec));
     nw.a.play().catch(() => {});
   }
   function speelNummer() {
@@ -198,7 +206,7 @@ window.MUZIEK = (() => {
     staat: () => ctx ? ctx.state : 'geen',
     spoel: s => { const a = decks[actief]?.a; if (a && a.duration) a.currentTime = a.duration - s; },
     spelend: () => decks.map(d => !d.a.paused),
-    stuk: () => speelt() ? nummer : stuk ? stuk.naam : '',
+    stuk: () => speelt() ? nummer.f + ' @' + decks[actief].a.currentTime.toFixed(1) : stuk ? stuk.naam : '',
     instel(a, v) { aan = !!a; vol = Math.max(0, Math.min(1, v)); aan ? speel() : pauze(); zetVolume(); },
     // Bij de overgang naar dag of nacht rondt het huidige stuk binnen twee akkoorden af; daarna volgt een stuk dat bij het uur past.
     nacht(n) { n = !!n; if (n === nacht) return; nacht = n; wissel(); }
