@@ -58,7 +58,7 @@ window.ENGINE = (() => {
       verzamel: 1, capD: {}, capRes: {}, kostRes: {}, faseHoog: 1, ketenIn: 1, upKost: 1, offlineEff: 0, tev: {}, drukte: 0,
       verbandPlus: 0, verbind: 0, vondst: 0, vondstX: 1, licht: 0, lichtDuur: 1, lichtX: 1, reis: 1, rivier: false, novaX: 1,
       magieE: 1, offlineEnergie: 1, veyra: false, verbanden: [], tikX: 1, alles: 1, nachtTik: 1, lichtVaak: 1, gaveDuur: 1, bedX: 1, doelPlus: 0, tocht: 0, tikRes: [], ritme: false, tikLomari: 0, tikSec: BAL.verzamelSec, mandSec: 10,
-      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {}, runeKost: 1, openWegen: false, ketenPlant: 1, tevAlle: 0 };
+      herstel: 1, gebKans: 1, gebKansT: {}, geenGeb: {}, nacht: 0, nachtTev: 0, tevHerstel: 1, schild: false, voorhoede: false, geenNacht: false, bouwX: 1, bouwD: {}, runeKost: 1, openWegen: false, ketenPlant: 1, tevAlle: 0, helpPer: 0, helpMax: 0, hongerF: .5 };
     const zet = (e, s = 1) => {               // s = sterkte (1 of 0,4); vermenigvuldigers schalen als 1 + (x−1)·s
       const sx = x => 1 + (x - 1) * s;
       if (e.t === 'prod') { if (e.res) m.res[e.res] = (m.res[e.res] || 1) * sx(e.x); else m.dist[e.d] = (m.dist[e.d] || 1) * sx(e.x); }
@@ -125,13 +125,16 @@ window.ENGINE = (() => {
       else if (e.t === 'gaveDuur') m.gaveDuur *= e.x;
       else if (e.t === 'bedX') m.bedX *= e.x;
       else if (e.t === 'doelPlus') m.doelPlus += e.plus;
+      else if (e.t === 'helpers') { m.helpPer = Math.max(m.helpPer, e.per); m.helpMax += e.max; }
+      else if (e.t === 'helpMax') m.helpMax *= e.x;
+      else if (e.t === 'hongerF') m.hongerF = Math.max(m.hongerF, e.x);
       else if (e.t === 'bouwD') m.bouwD[e.d] = (m.bouwD[e.d] || 1) * sx(e.x);
     };
     const ids = [...Object.keys(S.up).filter(k => S.up[k]), ...(S.beproef === 'stam' ? [] : Object.keys(S.star).filter(k => S.star[k]))];
     for (const id in S.beproefKlaar || {}) for (const e of D.BEPROEF[id].fx) zet(e);   // Beloningen van Beproevingen
     for (const [k, t] of Object.entries(S.kennis || {})) if (t > 0 && D.KENNIS[k]) zet(D.KENNIS[k].fx(t));   // Woudkennis
     const geenGaven = S.beproef === 'lomari';
-    for (const id of ids) for (const e of fx(id)) zet(e);
+    for (const id of ids) for (const e of fx(id)) if (!e.als || plek(S, e.als[0]) === e.als[1]) zet(e);   // als = [Lomari, district]: werkt alleen zolang die Lomari daar staat
     for (const [k, v] of Object.entries(S.vondstBonus || {})) m.res[k] = (m.res[k] || 1) * (1 + v);
     // Lomari: passief alleen als ingezet (niet onderweg); 100% in eigen district, anders 40% (Koro: overal 100%)
     for (const def of LM.L) {
@@ -208,6 +211,10 @@ window.ENGINE = (() => {
     return { lijst: l, totaal: l.reduce((a, x) => a * x[2], 1) };
   }
   const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)) * m.bedX, 0);
+  // Helpende handen: bewoners zonder baan helpen mee. Per 10% meer bewoners dan banen +helpPer·10 productie, hoogstens helpMax.
+  // Gerekend als verhouding, zodat een nieuwe werkplek de bonus maar een klein beetje verlaagt. Helpers eten ook.
+  const helpers = (bed, job, m) => m.helpPer > 0 && job > 0 ? Math.max(0, Math.min(bed - job, job * m.helpMax / m.helpPer)) : 0;
+  const helpF = (bed, job, m) => 1 + (job > 0 ? helpers(bed, job, m) / job * m.helpPer : 0);
   const banen = S => BK.reduce((a, b) => a + S.n[b] * (B[b].w || 0), 0);
   // Opslag = basis + opslaggebouwen + een buffer van BAL.opslagUren productie, alles × opslagbonussen
   const cap = (S, k, m, R = rates(S, m)) => (RES[k].cap + BK.reduce((a, b) => a + (B[b].o?.[k] || 0) * (BAL.opslagGroei ** S.n[b] - 1) / (BAL.opslagGroei - 1), 0)
@@ -222,7 +229,7 @@ window.ENGINE = (() => {
   // Productie en verbruik per seconde. Ketens kunnen stilvallen zonder input.
   function rates(S, m = mods(S), dt = 1) {
     const g = globaal(S, m) * nachtF(S, m), bed = bedden(S, m), job = banen(S), lijst = verbindingen(S);
-    const staff = job ? Math.min(1, bed / job) : 1;
+    const staff = (job ? Math.min(1, bed / job) : 1) * helpF(bed, job, m), hulp = helpers(bed, job, m);
     const prod = {}, use = {}; RK.forEach(k => { prod[k] = 0; use[k] = 0; });
     const dF = {}; for (const d of [...Object.keys(D.DISTRICTS), ...Object.keys(D.GEBIEDEN)]) dF[d] = (m.dist[d] || 1) * tevFactor(S, d, m) * verbindFactor(S, d, m, lijst);
     const keten = [];
@@ -232,7 +239,7 @@ window.ENGINE = (() => {
       if (x.c) { keten.push([b, f]); continue; }
       for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * (m.res[k] || 1);
     }
-    use.voedsel += BAL.onderhoud * Math.min(bed, job + BAL.startBedden) * m.onderhoud;
+    use.voedsel += BAL.onderhoud * Math.min(bed, job + BAL.startBedden + hulp) * m.onderhoud;
     for (const [b, f] of keten) {
       const x = B[b]; let ratio = 1;
       for (const [k, v] of Object.entries(x.c)) {
@@ -244,8 +251,8 @@ window.ENGINE = (() => {
       for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * ratio * plant * (m.res[k] || 1);
     }
     const honger = S.r.voedsel <= 0 && prod.voedsel < use.voedsel;
-    if (honger) RK.forEach(k => { if (k !== 'voedsel') prod[k] *= .5; });
-    return { prod, use, staff, bed, job, honger, g };
+    if (honger) RK.forEach(k => { if (k !== 'voedsel') prod[k] *= m.hongerF; });
+    return { prod, use, staff, bed, job, honger, g, hulp };
   }
 
   function tick(S, dt, rendement = 1, m = mods(S)) {
@@ -406,6 +413,8 @@ window.ENGINE = (() => {
     if (e.tot && totaal(S) < e.tot) return false;
     if (e.tik && (S.tikken || 0) < e.tik) return false;
     if (e.lom && Object.keys(S.lom || {}).length < e.lom) return false;
+    if (e.b2 && S.n[e.b2[0]] < e.b2[1]) return false;
+    if (e.heeft && !S.lom?.[e.heeft]) return false;
     return true;
   }
   function eisTekst(e) {
@@ -416,6 +425,8 @@ window.ENGINE = (() => {
     if (e?.tot) t.push(`${e.tot} gebouwen`);
     if (e?.tik) t.push(`${e.tik} keer getikt`);
     if (e?.lom) t.push(`${e.lom} Lomari ontmoet`);
+    if (e?.b2) t.push(`${e.b2[1]}× ${B[e.b2[0]].naam}`);
+    if (e?.heeft) t.push(`${LM.L.find(l => l.id === e.heeft).naam} ontmoet`);
     return t.join(', ');
   }
   function koopUpgrade(S, id) {
@@ -460,7 +471,7 @@ window.ENGINE = (() => {
   function automatiseer(S, dt) {
     const m = mods(S), gedaan = [], a = id => autoAan(S, id, m);
     if (a('verzamel')) { S.verzamelT += dt; while (S.verzamelT >= m.mandSec) { S.verzamelT -= m.mandSec; verzamel(S); } }
-    if (a('wonen') && bedden(S, m) < banen(S) + 1) {
+    if (a('wonen') && bedden(S, m) < banen(S) * (1 + (m.helpPer ? m.helpMax / m.helpPer : 0)) + 1) {
       for (const b of ['familie', 'nest']) if (S.open.includes(B[b].d) && koop(S, b)) { gedaan.push(b); break; }
     }
     if (a('voedsel')) { const R = rates(S, m); if (R.prod.voedsel < R.use.voedsel * 1.05 && koop(S, 'bessen')) gedaan.push('bessen'); }
@@ -720,7 +731,7 @@ window.ENGINE = (() => {
   // Productie per stuk van een gebouw, met alle bonussen (voor de uitleg in het spel)
   function perStuk(S, b, m = mods(S)) {
     const x = B[b]; if (!x.p) return {};
-    const lijst = verbindingen(S), bed = bedden(S, m), job = banen(S), staff = job ? Math.min(1, bed / job) : 1;
+    const lijst = verbindingen(S), bed = bedden(S, m), job = banen(S), staff = (job ? Math.min(1, bed / job) : 1) * helpF(bed, job, m);
     const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * nachtF(S, m) * stilF(S, b, m) * (S.rune?.[b] === 'groei' ? 1.5 : 1) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
     return Object.fromEntries(Object.entries(x.p).map(([k, v]) => [k, v * f * (m.res[k] || 1)]));
   }

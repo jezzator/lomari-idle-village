@@ -295,6 +295,14 @@ window.DATA = (() => {
     { id: 'liederen', cat: 'E', naam: 'Werkliederen',           tekst: '+5% productie per open district',  k: { bladeren: 5000, lianen: 5000 }, eis: { d: 'Rikilari' }, fx: [{ t: 'perDistrict', plus: .05 }] },
     { id: 'bruggen',  cat: 'E', naam: 'Bruggenbouwers',         tekst: 'Touwbrug: +6% in plaats van +4%',  k: { lianen: 10000, hout: 5000 }, eis: { b: ['brug', 5] }, fx: [{ t: 'brug', plus: .02 }] },
     { id: 'familieb', cat: 'E', naam: 'Familiebanden',          tekst: 'Familiekamer: 15 bewoners in plaats van 10', k: { hout: 30000, bladeren: 20000, steen: 2000 }, eis: { b: ['familie', 5] }, fx: [{ t: 'bed', b: 'familie', plus: 5 }] },
+    // Moloro: bewoners zonder baan laten meewerken
+    { id: 'handen',   cat: 'E', naam: 'Helpende handen',        tekst: 'Bewoners zonder baan helpen mee: per 10% meer bewoners dan banen +5% productie, hoogstens +20%. Helpers eten ook.', k: { hout: 6000, bladeren: 4000, steen: 400 }, eis: { b: ['familie', 3] }, fx: [{ t: 'helpers', per: .5, max: .2 }] },
+    { id: 'warmnest', cat: 'E', naam: 'Warme nesten',           tekst: 'Slaapnest: 4 bewoners in plaats van 3', k: { hout: 25000, bladeren: 25000 }, eis: { u: ['maaltijd'], b: ['nest', 50] }, fx: [{ t: 'bed', b: 'nest', plus: 1 }] },
+    { id: 'grootfam', cat: 'E', naam: 'Grote families',         tekst: 'Familiekamer: 20 bewoners in plaats van 15', k: { hout: 300000, bladeren: 200000, steen: 30000 }, eis: { u: ['familieb'], b: ['familie', 25] }, fx: [{ t: 'bed', b: 'familie', plus: 5 }] },
+    { id: 'uitgesl',  cat: 'A', naam: 'Uitgeslapen werkers',    tekst: 'Alle productie ×1,1', k: { hout: 400000, bladeren: 300000, steen: 40000, gereedschap: 3000 }, eis: { b: ['nest', 75], b2: ['familie', 15] }, fx: [{ t: 'alles', x: 1.1 }] },
+    { id: 'holen',    cat: 'B', naam: 'Gevulde holen',          tekst: 'Bij honger zakt de productie naar 75% in plaats van 50%', k: { hout: 8000, bladeren: 5000 }, eis: { b: ['voorraad', 25] }, fx: [{ t: 'hongerF', x: .75 }] },
+    { id: 'slaaplied',cat: 'E', naam: 'Sora\'s slaaplied',      tekst: 'Zolang Sora in Moloro staat: plafond van Helpende handen ×1,3', k: { hout: 80000, bladeren: 60000, lianen: 10000 }, eis: { u: ['handen'], heeft: 'sora' }, fx: [{ t: 'helpMax', x: 1.3, als: ['sora', 'Moloro'] }] },
+    { id: 'kruidtuin',cat: 'A', naam: 'Liri\'s kruidentuin',    tekst: 'Zolang Liri in Moloro staat: voedsel ×1,5 en onderhoud −15%', k: { hout: 30000, bladeren: 25000 }, eis: { b: ['bessen', 30], heeft: 'liri' }, fx: [{ t: 'prod', res: 'voedsel', x: 1.5, als: ['liri', 'Moloro'] }, { t: 'onderhoud', x: .85, als: ['liri', 'Moloro'] }] },
   ];
   const ROMEIN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV', 'XVI'];
 
