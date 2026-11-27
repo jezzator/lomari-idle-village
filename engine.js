@@ -455,14 +455,16 @@ window.ENGINE = (() => {
     }
     return uit;
   }
+  // Automatisering staat aan als je hem hebt en hem niet zelf hebt uitgezet (Instellingen)
+  function autoAan(S, id, m = mods(S)) { return !!m.auto[id] && !S.instel?.autoUit?.[id]; }
   function automatiseer(S, dt) {
-    const m = mods(S), gedaan = [];
-    if (m.auto.verzamel) { S.verzamelT += dt; while (S.verzamelT >= m.mandSec) { S.verzamelT -= m.mandSec; verzamel(S); } }
-    if (m.auto.wonen && bedden(S, m) < banen(S) + 1) {
+    const m = mods(S), gedaan = [], a = id => autoAan(S, id, m);
+    if (a('verzamel')) { S.verzamelT += dt; while (S.verzamelT >= m.mandSec) { S.verzamelT -= m.mandSec; verzamel(S); } }
+    if (a('wonen') && bedden(S, m) < banen(S) + 1) {
       for (const b of ['familie', 'nest']) if (S.open.includes(B[b].d) && koop(S, b)) { gedaan.push(b); break; }
     }
-    if (m.auto.voedsel) { const R = rates(S, m); if (R.prod.voedsel < R.use.voedsel * 1.05 && koop(S, 'bessen')) gedaan.push('bessen'); }
-    if (m.auto.fase) for (const b of BK) if (faseKlaar(S, b, m) && groei(S, b)) gedaan.push('fase ' + b);
+    if (a('voedsel')) { const R = rates(S, m); if (R.prod.voedsel < R.use.voedsel * 1.05 && koop(S, 'bessen')) gedaan.push('bessen'); }
+    if (a('fase')) for (const b of BK) if (faseKlaar(S, b, m) && groei(S, b)) gedaan.push('fase ' + b);
     return gedaan;
   }
 
@@ -710,7 +712,7 @@ window.ENGINE = (() => {
     S.geb = []; S.gebT = 0;   // gebeurtenissen lossen zich op terwijl je weg bent; er komen geen nieuwe
     for (let i = 0; i < stappen; i++) { const mm = mods(S); mm.geenNacht = true; mm.geenCap = true; tick(S, eff / stappen, rend, mm); ev.push(...lomTick(S, eff / stappen, mm, true)); }
     S.klok = (S.klok || 0) + sec;
-    if (m.nachtmanden && m.auto.verzamel) verzamel(S, Math.floor(eff / m.mandSec) * rend, 1, true);
+    if (m.nachtmanden && autoAan(S, 'verzamel', m)) verzamel(S, Math.floor(eff / m.mandSec) * rend, 1, true);
     const winst = {}; RK.forEach(k => winst[k] = S.r[k] - voor[k]);
     return { sec, eff, winst, limiet, rend, vondsten: S.vondstTot - vondstVoor, ev };
   }
@@ -727,8 +729,8 @@ window.ENGINE = (() => {
   return { RK, BK, nieuw, mods, rates, tick, cap: (S, k, R) => { const m = mods(S); return cap(S, k, m, R || rates(S, m)); }, kostVan, kostVanN, maxN, faseKost, faseKlaar,
     faseDrempel: (S, b) => faseDrempel(S, b, mods(S)), kan, past, koop, groei, openDistrict, eisOk, eisTekst, koopUpgrade, upKost, magieKost,
     kennisKost, kennisOpen, koopKennis, tel, weekDoel, haalWeek, dagDoelen, doelStand, doelKlaar, haalDoel, doelMeld, gaveX, gaveKan, zetGave, geefGave, gavePrijs, gaveKoopKan, koopGave,
-    novaW, bonusLijst: S => bonusLijst(S), magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
-    waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && m.auto.verzamel) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
+    novaW, bonusLijst: S => bonusLijst(S), magieOpen, koopMagie, ambMax, ambTrede, ambOpen, ambKost, koopAmb, verzamel, automatiseer, autoAan, stats, checkAch, hergroeiKlaar, novaWacht, hergroei, koopStar, offline,
+    waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && autoAan(S, 'verzamel', m)) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     jaarKlaar, jaarWacht, jaarring, beproefOpen, bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
     runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,

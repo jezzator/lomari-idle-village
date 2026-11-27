@@ -221,7 +221,7 @@ function effectNu(u) {
     const o0 = E.offlineInfo(S); S.up[u.id] = true; const o1 = E.offlineInfo(S); delete S.up[u.id];
     if (o1.rend !== o0.rend) t.push(`offline-opbrengst van ${Math.round(o0.rend * 100)}% naar ${Math.round(o1.rend * 100)}%`);
     if (o1.limiet !== o0.limiet) t.push(`offline-limiet van ${o0.limiet} naar ${o1.limiet} uur`);
-    if (u.fx.some(e => e.t === 'nachtmanden')) t.push(E.mods(S).auto.verzamel ? 'je manden tikken door terwijl je weg bent' : 'werkt zodra je Verzamelmanden hebt');
+    if (u.fx.some(e => e.t === 'nachtmanden')) t.push(E.autoAan(S, 'verzamel') ? 'je manden tikken door terwijl je weg bent' : 'werkt zodra je Verzamelmanden hebt');
   }
   if (u.fx.some(e => e.t === 'faseKost')) t.push('elke fase-upgrade kost 20% minder');
   if (u.fx.some(e => e.t === 'auto')) t.push('gaat vanzelf, je hoeft er niets voor te doen');
@@ -458,6 +458,8 @@ function paneelInstel() {
     <div class="kaart"><h2>Geluid</h2><p>Korte klanken bij tikken, bouwen, upgrades en een voltooide fase.</p>
     <label class="sw"><input type="checkbox" id="gel" ${(S.instel.geluid ?? true) ? 'checked' : ''}> Geluidseffecten aan</label>
     <label class="sw">Volume <input type="range" id="gelvol" min="0" max="100" step="5" value="${Math.round((S.instel.geluidVol ?? 0.5) * 100)}" style="flex:1;width:auto;height:auto" aria-label="Volume geluidseffecten"></label></div>
+    ${(() => { const L = [['verzamel', 'Verzamelmanden', 'verzamelt vanzelf'], ['wonen', 'Nestenbouwers', 'bouwt vanzelf woningen'], ['voedsel', 'Voorraadwacht', 'bouwt vanzelf een Bessentuin'], ['fase', 'Groeiwachters', 'voert de Upgrade naar fase vanzelf uit']].filter(x => m.auto[x[0]]);
+      return L.length ? `<div class="kaart"><h2>Automatisering</h2><p>Zet uit wat je liever zelf doet. De upgrade blijft van jou; aanzetten kan altijd weer, ook na Hergroei.</p>${L.map(([id, n, t]) => `<label class="sw"><input type="checkbox" data-auto="${id}" ${S.instel.autoUit?.[id] ? '' : 'checked'}> ${n} <small style="opacity:.7">${t}</small></label>`).join('')}</div>` : ''; })()}
     <div class="kaart"><h2>Offline</h2>${(() => { const o = E.offlineInfo(S); return `<p>Terwijl je weg bent produceert het dorp ${Math.round(o.rend * 100)}% van normaal, maximaal ${o.limiet} uur, en nooit meer dan je opslag.${o.manden ? ' Je Verzamelmanden tikken door.' : ''} Meer halen: upgrades onder Offline, Yomi, en Lange nacht in de Sterrenstam.</p>`; })()}
     <label class="sw"><input type="checkbox" id="offm" ${S.instel.offlineMelding ? 'checked' : ''}> Overzicht tonen bij terugkomst</label></div>
     <div class="kaart"><h2>Opslaan</h2><p>Het spel slaat elke 10 seconden op in deze browser. Om op een ander apparaat verder te spelen: kopieer de code en plak hem daar.</p>
@@ -689,6 +691,7 @@ $('#paneel').addEventListener('toggle', e => { const id = e.target.dataset?.boom
 $('#paneel').addEventListener('input', e => { if (e.target.id === 'muzvol') { S.instel.volume = e.target.value / 100; muziekInstel(); } else if (e.target.id === 'gelvol') { S.instel.geluidVol = e.target.value / 100; geluidInstel(); } });
 $('#paneel').addEventListener('change', e => {
   if (e.target.id === 'gel' || e.target.id === 'gelvol') { S.instel.geluid = $('#gel').checked; S.instel.geluidVol = $('#gelvol').value / 100; geluidInstel(); if (e.target.id === 'gelvol') klank('koop'); bewaar(); }
+  else if (e.target.dataset?.auto) { (S.instel.autoUit = S.instel.autoUit || {})[e.target.dataset.auto] = !e.target.checked; bewaar(); }
   else if (e.target.id === 'offm') { S.instel.offlineMelding = e.target.checked; bewaar(); }
   else if (e.target.id === 'muz' || e.target.id === 'muzvol') { S.instel.muziek = $('#muz').checked; S.instel.volume = $('#muzvol').value / 100; muziekInstel(); bewaar(); }
   else if (e.target.dataset.wijs) { const id = e.target.dataset.wijs; if (E.wijs(S, id, e.target.value || null)) { const l = S.lom[id]; toast(l.reis > 0 ? `${E.lomDef(id).naam} gaat op weg naar ${l.d}` : l.d ? `${E.lomDef(id).naam} werkt nu in ${l.d}` : `${E.lomDef(id).naam} is vrij`); after(); } }
