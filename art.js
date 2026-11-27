@@ -118,8 +118,8 @@ window.ART = (() => {
 
   // Goedgekeurde afbeeldingen. Nieuw district: zet de bestanden in gebouw/ (klein, 144×144),
   // gebouw/groot/ en gebouw/district/<naam>.jpg, en voeg de namen hieronder toe. Zonder afbeelding valt het spel terug op de SVG-tekening.
-  const BEELD = new Set(['hakplek', 'zaag', 'kroon', 'stamrek', 'pluk', 'liaan', 'hangtuin', 'netrek']);
-  const DBEELD = new Set(['Takelom', 'Lomavii']);
+  const BEELD = new Set(['hakplek', 'zaag', 'kroon', 'stamrek', 'pluk', 'liaan', 'hangtuin', 'netrek', 'nest', 'familie', 'bessen', 'voorraad']);
+  const DBEELD = new Set(['Takelom', 'Lomavii', 'Moloro']);
   const beeld = b => BEELD.has(b) ? `gebouw/${b}.jpg` : null;
   const beeldGroot = b => BEELD.has(b) ? `gebouw/groot/${b}.jpg` : null;
   const districtBeeld = d => DBEELD.has(d) ? `gebouw/district/${d.toLowerCase()}.jpg` : null;
