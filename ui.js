@@ -46,6 +46,11 @@ function herstel(x) {
 function bewaar() { S.t = Date.now(); try { localStorage.setItem(SLEUTEL, JSON.stringify(S)); } catch (e) {} }
 
 // ---------- tekeningen ----------
+// In de lijsten: goedgekeurde afbeelding als die er is (tik = groot), anders de SVG-tekening. Het dorpsplaatje houdt de SVG.
+function gebouwIco(b, fase) {
+  const src = window.ART && ART.beeld(b);
+  return src ? `<img class="gbeeld tikbaar" src="${src}" alt="${B[b].naam}" data-gbeeld="${b}" title="Bekijk ${B[b].naam}">` : gebouwSvg(b, fase);
+}
 function gebouwSvg(b, fase) {
   if (window.ART && ART.heeft(b)) return ART.gebouw(b, fase, !!B[b].o);
   const x = B[b], kl = DKLEUR[x.d];
@@ -138,6 +143,8 @@ function paneelDorp() {
   if (open) {
     const vb = E.verbindingen(S).filter(([a, b]) => a === d || b === d).map(([a, b]) => a === d ? b : a);
     const hier = E.inDistrict(S, d), thuis = LM.L.filter(l => l.d === d && S.lom[l.id]).map(l => l.naam);
+    const db = window.ART && ART.districtBeeld(d);
+    if (db) h += `<img class="dbeeld tikbaar" src="${db}" alt="${d}: alle gebouwen samen" data-dbeeld="${d}" title="Bekijk ${d}">`;
     if (D.GEBIEDEN[d]) h += `<p class="uitleg"><b>Gebied:</b> blijft open na elke Hergroei. ${D.GEBIEDEN[d].bonus}</p>`;
     const hierGeb = S.geb.filter(g => g.d === d);
     if (hierGeb.length) h += hierGeb.map(g => `<div class="gebk"><span>${GEBICO[g.id]}</span><div><b>${gebTekst(g)}</b><br><small>${D.GEB[g.id].tekst}. Nog <span data-gebover="${g.k}"></span>. Elke tik helpt ${BAL.helpSec} seconden.</small></div><button class="knop klein" data-help="${g.k}">Help</button></div>`).join('');
@@ -169,7 +176,7 @@ function paneelDorp() {
     if (y.w) wat += ` · ${y.w} ${y.w > 1 ? 'werkers' : 'werker'} per stuk`;
     let fz = y.bron && n && f >= 5 ? bronwerkHTML() : '';
     if (y.p && f < 5) {
-      const dr = E.faseDrempel(S, b), naar = `<span class="fz">${gebouwSvg(b, f)}<span>→</span>${gebouwSvg(b, f + 1)}</span>`;
+      const dr = E.faseDrempel(S, b), naar = ART.beeld?.(b) ? `<span class="fz">${gebouwIco(b, f)}<span>→ ${f + 1}</span></span>` : `<span class="fz">${gebouwSvg(b, f)}<span>→</span>${gebouwSvg(b, f + 1)}</span>`;
       const effect = n ? `Alle ${n} ${y.naam.toLowerCase()} maken dan ×2: van ${rs(ps, n)} naar ${rs(ps, 2 * n)} per seconde.` : 'De productie van dit gebouw verdubbelt.';
       const bz = S.bouw.find(x => x.b === b), bezig = E.bouwBezig(S, y.d);
       if (bz) fz = `<div class="fase bouwk">${naar}<div><b>Bezig: upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]})</b><br>Klaar over <span data-bouwover="${b}"></span>. Tot dan werkt het gebouw door op fase ${f}. Elke tik haalt er ${duur(Math.max(BAL.bouwTikMin, bz.duur * BAL.bouwTik))} af.</div><div class="bar"><i data-bouwbar="${b}"></i></div><button class="knop klein" data-bouwhelp="${b}">Help bouwen</button></div>`;
@@ -182,7 +189,7 @@ function paneelDorp() {
     const ups = D.U.filter(u => u.fx.some(e => (e.t === 'prod' && (y.p?.[e.res] || e.d === d)) || (e.t === 'bed' && e.b === b) || (e.t === 'brug' && y.brug) || (e.t === 'opslag' && y.o)));
     const upl = ups.length ? `<p class="ups">Upgrades uit de winkel: ${ups.map(u => { const st = S.up[u.id] ? 'heb' : E.eisOk(S, u.eis) ? 'kan' : 'nog';
       return `<button class="upl ${st}" data-tab-ga="upgrades" title="${st === 'heb' ? 'Gekocht' : st === 'kan' ? 'Te koop bij Upgrades' : 'Vereist: ' + esc(E.eisTekst(u.eis))}">${st === 'heb' ? '✓ ' : ''}${u.naam} <span>(${u.tekst})</span></button>`; }).join('')}</p>` : '';
-    h += `<div class="gb${flits === b ? ' flits' : ''}${faseMoment === b ? ' groei' : ''}" data-gb="${b}"><div class="ico">${gebouwSvg(b, f)}</div><div class="gi">
+    h += `<div class="gb${flits === b ? ' flits' : ''}${faseMoment === b ? ' groei' : ''}" data-gb="${b}"><div class="ico">${gebouwIco(b, f)}</div><div class="gi">
       <h3>${y.naam} <span class="n">${n}</span>${y.p ? `<span class="fn">fase ${f} van 5: ${D.FASE_NAAM[f - 1]}</span>` : ''}</h3><p>${wat}</p>
       <p class="kost" data-kost="${b}"></p>${fz}${upl}</div>
       <button class="knop" data-buy="${b}"></button></div>`;
@@ -608,6 +615,11 @@ $('#verzamel').onclick = () => {
 };
 // Grote tekeningen van de Lomari (portret/groot/); tik op het portret in het Lomari-paneel.
 const GROOT = new Set(['beki', 'brakka', 'droki', 'elomi', 'kavo', 'koro', 'liri', 'melo', 'niko', 'nira', 'ori', 'piko', 'seli', 'sora', 'tiku', 'varo', 'veyra', 'yomi']);
+$('#paneel').addEventListener('click', e => {
+  const gb = e.target.closest('[data-gbeeld]'), db = e.target.closest('[data-dbeeld]');
+  if (gb) dialoog(B[gb.dataset.gbeeld].naam, `<img src="${ART.beeldGroot(gb.dataset.gbeeld)}" alt="${B[gb.dataset.gbeeld].naam}" style="width:100%;border-radius:12px;display:block">`, 'Sluiten');
+  else if (db) dialoog(db.dataset.dbeeld, `<img src="${ART.districtBeeld(db.dataset.dbeeld)}" alt="${db.alt}" style="width:100%;border-radius:12px;display:block">`, 'Sluiten');
+});
 $('#paneel').addEventListener('click', e => { const g = e.target.closest('[data-groot]'); if (g) { const d = E.lomDef(g.dataset.groot); dialoog(d.naam, `<img src="portret/groot/${d.id}.jpg" alt="${d.naam}, thuis in ${d.d}" style="width:100%;border-radius:12px;display:block">`, 'Sluiten'); } });
 $('#paneel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.disabled) return; const d = b.dataset;

@@ -116,5 +116,14 @@ window.ART = (() => {
   };
   const res = k => `<svg viewBox="0 0 16 16" class="ri" aria-hidden="true">${R[k] || ''}</svg>`;
 
-  return { gebouw, slinger, embleem, res, heeft: b => !!G[b] };
+  // Goedgekeurde afbeeldingen. Nieuw district: zet de bestanden in gebouw/ (klein, 144×144),
+  // gebouw/groot/ en gebouw/district/<naam>.jpg, en voeg de namen hieronder toe. Zonder afbeelding valt het spel terug op de SVG-tekening.
+  const BEELD = new Set(['hakplek', 'zaag', 'kroon', 'stamrek']);
+  const DBEELD = new Set(['Takelom']);
+  const beeld = b => BEELD.has(b) ? `gebouw/${b}.jpg` : null;
+  const beeldGroot = b => BEELD.has(b) ? `gebouw/groot/${b}.jpg` : null;
+  const districtBeeld = d => DBEELD.has(d) ? `gebouw/district/${d.toLowerCase()}.jpg` : null;
+  const beeldLijst = () => [...[...BEELD].flatMap(b => [beeld(b), beeldGroot(b)]), ...[...DBEELD].map(districtBeeld)];
+
+  return { gebouw, slinger, embleem, res, heeft: b => !!G[b], beeld, beeldGroot, districtBeeld, beeldLijst };
 })();
