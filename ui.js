@@ -484,13 +484,16 @@ function render() {
   $$('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab));
   $('#ladetitel').textContent = tab === 'dorp' ? '' : TITEL[tab];
   hotspots();
-  const scroll = $('#paneel').scrollTop;
+  const scroll = $('#paneel').scrollTop, oud = anker && $('#paneel').querySelector(anker), y0 = oud?.getBoundingClientRect().top;
   $('#paneel').innerHTML = { dorp: paneelDorp, lomari: paneelLomari, upgrades: paneelUpgrades, stam: paneelStam, prest: paneelPrest, instel: paneelInstel }[tab]();
-  $('#paneel').scrollTop = scroll; flits = null; faseMoment = null;
+  $('#paneel').scrollTop = scroll;
+  // De knop waarop net getikt is blijft onder de vinger staan, ook als de tekst erboven langer of korter wordt.
+ flits = null; faseMoment = null;
   const beschikbaar = D.U.filter(u => !S.up[u.id] && E.eisOk(S, u.eis) && E.kan(S, E.upKost(S, u))).length + (E.magieOpen(S) && E.kan(S, E.magieKost(S)) ? 1 : 0) + E.RK.filter(k => E.ambOpen(S, k) && E.ambTrede(S, k) < E.ambMax(k) && E.kan(S, E.ambKost(S, k))).length;
   $('#lmn').textContent = S.vondsten.length || ''; doelBadge();
   $('#upn').textContent = beschikbaar ? beschikbaar : '';
   ververs();
+  const nieuw = oud && $('#paneel').querySelector(anker); if (nieuw) $('#paneel').scrollTop += nieuw.getBoundingClientRect().top - y0;
 }
 function ververs() {
   if (maakSig() !== sig) return render();
@@ -696,6 +699,27 @@ $('#paneel').addEventListener('click', e => {
     });
   }
 });
+let anker = null;
+$('#paneel').addEventListener('click', e => { const b = e.target.closest('button'); const a = b && [...b.attributes].find(a => a.name.startsWith('data-'));
+  anker = a ? `[${a.name}="${CSS.escape(a.value)}"]` : null; setTimeout(() => { anker = null; }, 0); }, true);
+// Vasthouden = herhaald kopen. De knop wordt bij elke aankoop opnieuw getekend, dus we zoeken hem telkens op via zijn data-sleutel.
+const HERHAAL = ['buy', 'magie', 'amb', 'kennis', 'leg'];
+let houd = null;
+function houdStop() { if (houd) { clearTimeout(houd.t); houd = null; } }
+$('#paneel').addEventListener('pointerdown', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || e.button > 0) return;
+  const k = HERHAAL.find(k => b.dataset[k] !== undefined); if (!k) return;
+  houdStop(); const sel = `[data-${k}="${b.dataset[k]}"]`, x = e.clientX, y = e.clientY;
+  const stap = wacht => { houd.t = setTimeout(() => { const nu = $('#paneel').querySelector(sel); if (!nu || nu.disabled) return houdStop(); houd.herhaald = true; nu.click(); if (houd) stap(Math.max(45, wacht * .85)); }, wacht); };
+  houd = { x, y, herhaald: false }; stap(380);
+});
+addEventListener('pointermove', e => { if (houd && Math.hypot(e.clientX - houd.x, e.clientY - houd.y) > 12) houdStop(); });
+['pointerup', 'pointercancel', 'blur'].forEach(t => addEventListener(t, () => { if (houd?.herhaald) slik = true; houdStop(); }));
+// Na herhaald kopen telt het loslaten niet nog eens als tik.
+let slik = false;
+$('#paneel').addEventListener('click', e => { if (slik && e.isTrusted) { slik = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+$('#paneel').addEventListener('pointerdown', () => { slik = false; }, true);
+$('#paneel').addEventListener('contextmenu', e => { if (e.target.closest('button')) e.preventDefault(); });
 $('#paneel').addEventListener('toggle', e => { const id = e.target.dataset?.boom; if (id) e.target.open ? openBoom.add(id) : openBoom.delete(id); }, true);
 $('#paneel').addEventListener('input', e => { if (e.target.id === 'muzvol') { S.instel.volume = e.target.value / 100; muziekInstel(); } else if (e.target.id === 'gelvol') { S.instel.geluidVol = e.target.value / 100; geluidInstel(); } });
 $('#paneel').addEventListener('change', e => {
