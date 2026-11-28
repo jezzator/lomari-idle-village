@@ -170,27 +170,28 @@ function paneelDorp() {
       const nu = Object.keys(y.o).map(k => [k, E.cap(S, k)]); S.n[b]++; const na = Object.keys(y.o).map(k => E.cap(S, k)); S.n[b]--;
       wat = `<b>Opslag nu:</b> ${nu.map(([k, c]) => `${fmt(c)} ${RES[k].naam.toLowerCase()} (${Math.round(S.r[k] / c * 100)}% vol)`).join(' · ')} · <b>+1 stuk:</b> ${nu.map(([k, c], i) => `+${fmt(na[i] - c)} ${RES[k].naam.toLowerCase()}`).join(' · ')}`;
     }
-    else if (y.bed) wat = `<b>+${y.bed + (m.bed[b] || 0)} bewoners</b> per stuk. Elk gebouw dat iets maakt heeft werkers nodig.`;
+    else if (y.bed) wat = `<b>+${String(+((y.bed + (m.bed[b] || 0)) * (1 + BAL.faseBed * (f - 1)) * m.bedX).toFixed(1)).replace(".", ",")} bewoners</b> per stuk. Elk gebouw dat iets maakt heeft werkers nodig.`;
     else if (y.brug) wat = `<b>+${Math.round(m.brug * 100)}% op alle productie</b> per brug, en elke brug verbindt twee districten.`;
     else if (y.bron) wat = n ? `<b>Fase ${f} van 5:</b> +${5 * f}% op alle productie. Na elke Hergroei blijft de bron staan en groeit hij een fase.` : '<b>+5% op alle productie per fase.</b> Je bouwt er maar één. Hij blijft na elke Hergroei staan en groeit dan een fase.';
     if (y.w) wat += ` · ${y.w} ${y.w > 1 ? 'werkers' : 'werker'} per stuk`;
     let fz = y.bron && n && f >= 5 ? bronwerkHTML() : '';
-    if (y.p && f < BAL.faseMax) {
+    const fb = y.p || y.bed;
+    if (fb && f < BAL.faseMax) {
       const dr = E.faseDrempel(S, b), naar = ART.beeld?.(b) ? `<span class="fz">${gebouwIco(b, f)}<span>→ ${f + 1}</span></span>` : `<span class="fz">${gebouwSvg(b, f)}<span>→</span>${gebouwSvg(b, f + 1)}</span>`;
-      const effect = n ? `Alle ${n} ${y.naam.toLowerCase()} maken dan ×2: van ${rs(ps, n)} naar ${rs(ps, 2 * n)} per seconde.` : 'De productie van dit gebouw verdubbelt.';
+      const effect = y.bed ? `Elk ${y.naam.toLowerCase()} krijgt dan ${Math.round(BAL.faseBed * 100)}% meer bedden (nu ×${(1 + BAL.faseBed * (f - 1)).toFixed(2).replace('.', ',')}, dan ×${(1 + BAL.faseBed * f).toFixed(2).replace('.', ',')}).` : n ? `Alle ${n} ${y.naam.toLowerCase()} maken dan ×2: van ${rs(ps, n)} naar ${rs(ps, 2 * n)} per seconde.` : 'De productie van dit gebouw verdubbelt.';
       const bz = S.bouw.find(x => x.b === b), bezig = E.bouwBezig(S, y.d);
       if (bz) fz = `<div class="fase bouwk">${naar}<div><b>Bezig: upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]})</b><br>Klaar over <span data-bouwover="${b}"></span>. Tot dan werkt het gebouw door op fase ${f}. Elke tik haalt er ${duur(Math.max(BAL.bouwTikMin, bz.duur * BAL.bouwTik))} af.</div><div class="bar"><i data-bouwbar="${b}"></i></div><div class="rij"><button class="knop klein" data-bouwhelp="${b}">Help bouwen</button>${S.open.includes('Valunari') ? `<button class="knop klein" data-zicht="${b}" title="Nevelzicht: 1 Nevelparel per kwartier dat nog over is">Nevelzicht: nu klaar · <span data-zichtk="${b}"></span> Nevelparels</button>` : ''}</div></div>`;
       else if (bezig && n >= dr) fz = `<small class="nb">Upgrade naar fase ${f + 1} kan zodra ${B[bezig.b].naam} klaar is: in ${y.d} wordt maar aan één upgrade tegelijk gebouwd.</small>`;
       else fz = E.faseKlaar(S, b)
         ? `<div class="fase">${naar}<div><b>Upgrade naar fase ${f + 1}: ${D.FASE_NAAM[f]}</b><br>${effect} Bouwtijd: ${duur(E.bouwTijd(S, b))}.</div><span class="kost">${kost(E.faseKost(S, b))}</span><button class="knop klein" data-fase="${b}">Upgrade naar fase ${f + 1}</button></div>`
-        : `<div class="bar" title="Naar groeifase ${f + 1}"><i style="width:${Math.min(100, n / dr * 100)}%"></i></div><small class="nb">Upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]}, productie ×2) kan bij ${dr} stuks. Je hebt er ${n}, nog ${dr - n} bouwen.</small>`;
-    } else if (y.p) fz = `<small class="nb">Hoogste fase bereikt: ${D.FASE_NAAM[BAL.faseMax - 1]}.</small>`;
+        : `<div class="bar" title="Naar groeifase ${f + 1}"><i style="width:${Math.min(100, n / dr * 100)}%"></i></div><small class="nb">Upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]}, ${y.bed ? `+${Math.round(BAL.faseBed * 100)}% bedden` : 'productie ×2'}) kan bij ${dr} stuks. Je hebt er ${n}, nog ${dr - n} bouwen.</small>`;
+    } else if (fb) fz = `<small class="nb">Hoogste fase bereikt: ${D.FASE_NAAM[BAL.faseMax - 1]}.</small>`;
     if (y.p && (f >= D.runeFase || S.zegel?.[b])) fz += runeHTML(b);
     const ups = D.U.filter(u => u.fx.some(e => (e.t === 'prod' && (y.p?.[e.res] || e.d === d)) || (e.t === 'bed' && e.b === b) || (e.t === 'brug' && y.brug) || (e.t === 'opslag' && y.o)));
     const upl = ups.length ? `<p class="ups">Upgrades uit de winkel: ${ups.map(u => { const st = S.up[u.id] ? 'heb' : E.eisOk(S, u.eis) ? 'kan' : 'nog';
       return `<button class="upl ${st}" data-tab-ga="upgrades" title="${st === 'heb' ? 'Gekocht' : st === 'kan' ? 'Te koop bij Upgrades' : 'Vereist: ' + esc(E.eisTekst(u.eis))}">${st === 'heb' ? '✓ ' : ''}${u.naam} <span>(${u.tekst})</span></button>`; }).join('')}</p>` : '';
     h += `<div class="gb${flits === b ? ' flits' : ''}${faseMoment === b ? ' groei' : ''}" data-gb="${b}"><div class="ico">${gebouwIco(b, f)}</div><div class="gi">
-      <h3>${y.naam} <span class="n">${n}</span>${y.p ? `<span class="fn">fase ${f} van ${BAL.faseMax}: ${D.FASE_NAAM[f - 1]}</span>` : ''}</h3><p>${wat}</p>
+      <h3>${y.naam} <span class="n">${n}</span>${fb ? `<span class="fn">fase ${f} van ${BAL.faseMax}: ${D.FASE_NAAM[f - 1]}</span>` : ''}</h3><p>${wat}</p>
       <p class="kost" data-kost="${b}"></p>${fz}${upl}</div>
       <button class="knop" data-buy="${b}"></button></div>`;
   }
@@ -613,7 +614,7 @@ function helpGeb(k) {
   E.tel(S, 'help'); klank('help'); if (r.klaar) { toast(r.g.tev ? `${r.g.d} is weer tot rust gekomen` : `${B[r.g.b].naam} werkt weer`); render(); } else ververs();
 }
 function helpBouw(b) { if (E.helpBouw(S, b)) { E.tel(S, 'help'); klank('help'); meldBouw(); ververs(); } }
-function meldBouw() { if (!S.bouwKlaar?.length) return; for (const b of S.bouwKlaar) toast(`${B[b].naam} is klaar: fase ${S.fase[b]}, productie ×2`); faseMoment = S.bouwKlaar.at(-1); faseFx(faseMoment); S.bouwKlaar = []; render(); }
+function meldBouw() { if (!S.bouwKlaar?.length) return; for (const b of S.bouwKlaar) toast(`${B[b].naam} is klaar: fase ${S.fase[b]}, ${B[b].bed ? "meer bedden" : "productie ×2"}`); faseMoment = S.bouwKlaar.at(-1); faseFx(faseMoment); S.bouwKlaar = []; render(); }
 $('#spots').onclick = e => { const bh = e.target.closest('[data-bouwhelp]'); if (bh) return helpBouw(bh.dataset.bouwhelp); const h = e.target.closest('[data-help]'); if (h) return helpGeb(+h.dataset.help); const b = e.target.closest('[data-sel]'); if (b) naarDistrict(b.dataset.sel); };
 let tikTijden = [];
 $('#verzamel').onclick = () => {
@@ -653,7 +654,7 @@ $('#paneel').addEventListener('click', e => {
   else if (b.id === 'gidsuit') { S.instel.gidsUit = true; bewaar(); render(); }
   else if (d.modus) { modus = d.modus === 'max' ? 'max' : +d.modus; render(); }
   else if (d.buy) { const n = modus === 'max' ? Math.max(1, E.maxN(S, d.buy)) : modus; if (E.koop(S, d.buy, n)) { flits = d.buy; E.tel(S, 'koop', n); klank('koop'); after(); } }
-  else if (d.fase) { if (E.groei(S, d.fase)) { flits = d.fase; const x = S.bouw.find(x => x.b === d.fase); toast(x ? `Upgrade naar fase ${S.fase[d.fase] + 1} gestart: ${B[d.fase].naam} is klaar over ${duur(x.duur)}` : `${B[d.fase].naam} is geüpgraded naar fase ${S.fase[d.fase]}: productie ×2`); E.tel(S, 'fase'); if (!x) { faseMoment = d.fase; faseFx(d.fase); } else klank('bouw'); after(); } }
+  else if (d.fase) { if (E.groei(S, d.fase)) { flits = d.fase; const x = S.bouw.find(x => x.b === d.fase); toast(x ? `Upgrade naar fase ${S.fase[d.fase] + 1} gestart: ${B[d.fase].naam} is klaar over ${duur(x.duur)}` : `${B[d.fase].naam} is geüpgraded naar fase ${S.fase[d.fase]}: ${B[d.fase].bed ? "meer bedden" : "productie ×2"}`); E.tel(S, 'fase'); if (!x) { faseMoment = d.fase; faseFx(d.fase); } else klank('bouw'); after(); } }
   else if (d.open) { if (E.openDistrict(S, d.open)) { E.tel(S, 'open'); toast(`${d.open} is open`); after(); } }
   else if (d.up) { if (E.koopUpgrade(S, d.up)) { klank('upgrade'); after(); } }
   else if (d.magie) { if (E.koopMagie(S)) { klank('upgrade'); after(); } }

@@ -210,7 +210,7 @@ window.ENGINE = (() => {
     ].filter(x => x[2] > 1.0001);
     return { lijst: l, totaal: l.reduce((a, x) => a * x[2], 1) };
   }
-  const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)) * m.bedX, 0);
+  const bedden = (S, m) => BAL.startBedden + BK.reduce((a, b) => a + S.n[b] * ((B[b].bed || 0) + (B[b].bed ? (m.bed[b] || 0) : 0)) * (B[b].bed ? 1 + BAL.faseBed * (S.fase[b] - 1) : 1) * m.bedX, 0);
   // Helpende handen: bewoners zonder baan helpen mee. Per 10% meer bewoners dan banen +helpPer·10 productie, hoogstens helpMax.
   // Gerekend als verhouding, zodat een nieuwe werkplek de bonus maar een klein beetje verlaagt. Helpers eten ook.
   const helpers = (bed, job, m) => m.helpPer > 0 && job > 0 ? Math.max(0, Math.min(bed - job, job * m.helpMax / m.helpPer)) : 0;
@@ -294,7 +294,7 @@ window.ENGINE = (() => {
     Object.assign(c, BAL.faseZeldzaam[i] || {});   // vanaf fase 5 vaste zeldzame grondstoffen
     return c;
   }
-  const faseKlaar = (S, b, m = mods(S)) => !!B[b].p && S.fase[b] < BAL.faseMax && S.n[b] >= faseDrempel(S, b, m) && !bouwBezig(S, B[b].d);
+  const faseKlaar = (S, b, m = mods(S)) => !!(B[b].p || B[b].bed) && S.fase[b] < BAL.faseMax && S.n[b] >= faseDrempel(S, b, m) && !bouwBezig(S, B[b].d);
   // Bouwtijd: een upgrade naar een hogere fase is pas klaar na de bouwtijd. Tot dan produceert het gebouw op de oude fase.
   const bouwBezig = (S, d) => (S.bouw || []).find(x => B[x.b].d === d) || null;
   const bouwTijd = (S, b, m = mods(S)) => Math.round(BAL.bouwSec[S.fase[b] - 1] * m.bouwX * (m.bouwD[B[b].d] || 1) * runeVlotX(S, b));

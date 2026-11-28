@@ -24,6 +24,7 @@ window.DATA = (() => {
     onderhoud: 0.012,           // voedsel/s per bewoner
     startBedden: 4,
     faseMax: 8,
+    faseBed: .05,               // woongebouwen (Slaapnest, Familiekamer): elke fase hoger +10% bedden
     faseBij: [10, 25, 50, 100, 125, 150, 175], // aantallen voor fase 2..8
     faseKostMult: [8, 40, 200, 1000, 5000, 25000, 100000],
     faseExtra: [{}, { steen: 1, gereedschap: .2 }, { steen: 1, gereedschap: .5 }, { gereedschap: 1, kristal: .05 }, { gereedschap: 1, kristal: .1 }, { gereedschap: 1, kristal: .15 }, { gereedschap: 1, kristal: .2 }],
