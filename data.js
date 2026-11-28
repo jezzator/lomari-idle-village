@@ -23,9 +23,12 @@ window.DATA = (() => {
     productieSchaal: 0.3,
     onderhoud: 0.012,           // voedsel/s per bewoner
     startBedden: 4,
-    faseBij: [10, 25, 50, 100], // aantallen voor fase 2..5
-    faseKostMult: [8, 40, 200, 1000],
-    faseExtra: [{}, { steen: 1, gereedschap: .2 }, { steen: 1, gereedschap: .5 }, { gereedschap: 1, kristal: .05 }],
+    faseMax: 8,
+    faseBij: [10, 25, 50, 100, 125, 150, 175], // aantallen voor fase 2..8
+    faseKostMult: [8, 40, 200, 1000, 5000, 25000, 100000],
+    faseExtra: [{}, { steen: 1, gereedschap: .2 }, { steen: 1, gereedschap: .5 }, { gereedschap: 1, kristal: .05 }, { gereedschap: 1, kristal: .1 }, { gereedschap: 1, kristal: .15 }, { gereedschap: 1, kristal: .2 }],
+    // Vaste zeldzame kosten per fase-upgrade (index = huidige fase - 1): fase 5 vraagt Kroonhars, 6-8 de drie zeldzame grondstoffen
+    faseZeldzaam: [null, null, null, { kroonhars: 20 }, { nevelparel: 40 }, { nevelparel: 40, kroonhars: 60 }, { nevelparel: 60, kroonhars: 80, wortelgloed: 30 }],
     offlineRendement: 1,        // offline even snel als spelen; upgrades en Yomi tillen het tot offlineMax
     offlineMax: 1.5,
     offlineUren: 8,
@@ -34,7 +37,7 @@ window.DATA = (() => {
     verzamelSec: .2,            // één tik = 0,2 s productie hout + bladeren (minimaal 1 van elk)
     magieMax: 12,
     // Bouwtijd (deel B): een upgrade naar fase 2..5 duurt zo lang; één project tegelijk per district. Bouw blijft direct.
-    bouwSec: [60, 600, 3600, 14400], bouwTik: .01, bouwTikMin: 2,
+    bouwSec: [60, 600, 3600, 14400, 28800, 57600, 86400], bouwTik: .01, bouwTikMin: 2,
     // Dag en nacht (deel B): één etmaal duurt dagSec seconden, het laatste deel is nacht
     dagSec: 600, nachtDeel: .3, nachtProd: .8, nachtTik: 1.5,
     // Bosgebeurtenissen: elke gebSec een kans; alleen als je speelt, nooit offline
@@ -140,6 +143,12 @@ window.DATA = (() => {
     vlot:  { naam: 'Rune van vaart', tekst: 'Upgrades van dit gebouw bouwen twee keer zo snel', kost: { kristal: 25, hout: 2000 } },
   };
   const runeGroei = 1.6, runeFase = 3;
+  // Bestedingen voor zeldzame grondstoffen
+  // Nevelzicht: een lopende fase-upgrade direct afmaken, 1 Nevelparel per begonnen kwartier dat nog over is.
+  // Nevelbad: een Lomari (onder Band 30) krijgt direct een Band-niveau; elke keer ×1,4 duurder, terug naar begin bij Hergroei.
+  // Harszegel: verzegelt de rune van een gebouw. Hij werkt 1,5× zo sterk en blijft staan na Hergroei. Elke zegel ×1,5 duurder.
+  const NEVEL = { zichtSec: 900, bad: 10, badGroei: 1.4 };
+  const ZEGEL = { kost: 25, groei: 1.5, sterk: 1.5 };
   // Bosgebeurtenissen. doel = gebouwen die stil kunnen vallen; tev = tevredenheid in een district daalt; nacht = alleen 's nachts.
   // Een gebeurtenis kost nooit gebouwen of voorraad: hooguit valt een gebouw een paar minuten stil.
   const GEB = {
@@ -226,7 +235,7 @@ window.DATA = (() => {
     wortelk:   { naam: 'Wortelkamer',       d: 'Lomaruun', p: { wortelgloed: .002 }, k: { steen: 100000, kristal: 2000 }, w: 3 },
     oudebron:  { naam: 'De oude bron',      d: 'Lomaruun', bron: true, max: 1, k: { wortelgloed: 10, steen: 50000 } },
   };
-  const FASE_NAAM = ['Klein', 'Groeiend', 'Stevig', 'Groot', 'Meesterwerk'];
+  const FASE_NAAM = ['Klein', 'Groeiend', 'Stevig', 'Groot', 'Meesterwerk', 'Oeroud', 'Hemelhoog', 'Levend hart'];
 
   // Effecten: {t:'prod', res|d, x} · {t:'kost', x} · {t:'opslag', x} · {t:'onderhoud', x} · {t:'bed', b, plus}
   // {t:'brug', plus} · {t:'perDistrict', plus} · {t:'faseKost', x} · {t:'auto', id} · {t:'offline', uren}
@@ -398,5 +407,5 @@ window.DATA = (() => {
     { id: 'gm4', tak: 'Gemeenschap', extra: true, naam: 'Samen bouwen',    tekst: 'Upgrades naar een hogere fase 20% goedkoper', k: 100, eis: 'gm2', fx: [{ t: 'faseKost', x: .8 }] },
   ];
 
-  return { KENNIS, KENNIS_GROEI, WEEKDOEL, WEEK_NOVA, REEKS_DAGEN, DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
+  return { NEVEL, ZEGEL, KENNIS, KENNIS_GROEI, WEEKDOEL, WEEK_NOVA, REEKS_DAGEN, DOEL, DOEL_AANTAL, JAAR, jaarFormule, BEPROEF, BEPROEF_VANAF, BRONWERK, bronwerkKost, TOCHT, RELIEK, RELIEK_MAX, GAVE, GAVE_MAX, GAVE_START, GAVE_GEBKANS, GAVE_KOOPGROEI, RUNE, runeGroei, runeFase, GEB, RES, BAL, novaFormule, novaWaarde, magieKost, AMB, AMBACHT, ambKost, DISTRICTS, GEBIEDEN, START_OPEN, B, FASE_NAAM, CAT, U, ROMEIN, ACH, STAR };
 })();

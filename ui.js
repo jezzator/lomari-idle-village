@@ -58,9 +58,9 @@ function gebouwSvg(b, fase) {
   if (x.o) return `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="16" width="32" height="24" rx="3" fill="#7a5532"/><path d="M8 24h32M8 32h32" stroke="#4e3420" stroke-width="2"/><rect x="8" y="12" width="32" height="5" rx="2" fill="${kl}"/></svg>`;
   if (x.bed) return `<svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="24" cy="32" rx="18" ry="9" fill="#8a6238"/><ellipse cx="24" cy="29" rx="13" ry="5" fill="#d9b98a"/><path d="M10 30q14 8 28 0" stroke="#5c3d22" stroke-width="2" fill="none"/><circle cx="34" cy="14" r="3" fill="#f2c46a" opacity=".9"/></svg>`;
   let s = `<rect x="21" y="8" width="6" height="36" rx="2" fill="#6b4a2a"/>`;
-  for (let i = 0; i < fase; i++) { const y = 38 - i * 7, w = 14 + i * 2; s += `<rect x="${24 - w}" y="${y}" width="${w * 2}" height="3" rx="1.5" fill="#a77a48"/><rect x="${24 - w + 2}" y="${y - 4}" width="5" height="4" fill="${kl}"/>`; }
-  s += `<path d="M14 ${38 - fase * 7}l10-7 10 7z" fill="${kl}"/>`;
-  if (fase >= 4) s += `<circle cx="36" cy="${30 - fase * 3}" r="2.5" fill="#f2c46a"/><circle cx="12" cy="${34 - fase * 3}" r="2" fill="#f2c46a"/>`;
+  for (let i = 0; i < Math.min(fase, 5); i++) { const y = 38 - i * 7, w = 14 + i * 2; s += `<rect x="${24 - w}" y="${y}" width="${w * 2}" height="3" rx="1.5" fill="#a77a48"/><rect x="${24 - w + 2}" y="${y - 4}" width="5" height="4" fill="${kl}"/>`; }
+  s += `<path d="M14 ${38 - Math.min(fase, 5) * 7}l10-7 10 7z" fill="${kl}"/>`;
+  if (fase >= 4) s += `<circle cx="36" cy="${30 - Math.min(fase, 5) * 3}" r="2.5" fill="#f2c46a"/><circle cx="12" cy="${34 - Math.min(fase, 5) * 3}" r="2" fill="#f2c46a"/>`;
   if (fase >= 5) s += `<circle cx="24" cy="4" r="3" fill="#c48ae8"/>`;
   return `<svg viewBox="0 0 48 48" aria-hidden="true">${s}</svg>`;
 }
@@ -175,22 +175,22 @@ function paneelDorp() {
     else if (y.bron) wat = n ? `<b>Fase ${f} van 5:</b> +${5 * f}% op alle productie. Na elke Hergroei blijft de bron staan en groeit hij een fase.` : '<b>+5% op alle productie per fase.</b> Je bouwt er maar één. Hij blijft na elke Hergroei staan en groeit dan een fase.';
     if (y.w) wat += ` · ${y.w} ${y.w > 1 ? 'werkers' : 'werker'} per stuk`;
     let fz = y.bron && n && f >= 5 ? bronwerkHTML() : '';
-    if (y.p && f < 5) {
+    if (y.p && f < BAL.faseMax) {
       const dr = E.faseDrempel(S, b), naar = ART.beeld?.(b) ? `<span class="fz">${gebouwIco(b, f)}<span>→ ${f + 1}</span></span>` : `<span class="fz">${gebouwSvg(b, f)}<span>→</span>${gebouwSvg(b, f + 1)}</span>`;
       const effect = n ? `Alle ${n} ${y.naam.toLowerCase()} maken dan ×2: van ${rs(ps, n)} naar ${rs(ps, 2 * n)} per seconde.` : 'De productie van dit gebouw verdubbelt.';
       const bz = S.bouw.find(x => x.b === b), bezig = E.bouwBezig(S, y.d);
-      if (bz) fz = `<div class="fase bouwk">${naar}<div><b>Bezig: upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]})</b><br>Klaar over <span data-bouwover="${b}"></span>. Tot dan werkt het gebouw door op fase ${f}. Elke tik haalt er ${duur(Math.max(BAL.bouwTikMin, bz.duur * BAL.bouwTik))} af.</div><div class="bar"><i data-bouwbar="${b}"></i></div><button class="knop klein" data-bouwhelp="${b}">Help bouwen</button></div>`;
+      if (bz) fz = `<div class="fase bouwk">${naar}<div><b>Bezig: upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]})</b><br>Klaar over <span data-bouwover="${b}"></span>. Tot dan werkt het gebouw door op fase ${f}. Elke tik haalt er ${duur(Math.max(BAL.bouwTikMin, bz.duur * BAL.bouwTik))} af.</div><div class="bar"><i data-bouwbar="${b}"></i></div><div class="rij"><button class="knop klein" data-bouwhelp="${b}">Help bouwen</button>${S.open.includes('Valunari') ? `<button class="knop klein" data-zicht="${b}" title="Nevelzicht: 1 Nevelparel per kwartier dat nog over is">Nevelzicht: nu klaar · <span data-zichtk="${b}"></span> Nevelparels</button>` : ''}</div></div>`;
       else if (bezig && n >= dr) fz = `<small class="nb">Upgrade naar fase ${f + 1} kan zodra ${B[bezig.b].naam} klaar is: in ${y.d} wordt maar aan één upgrade tegelijk gebouwd.</small>`;
       else fz = E.faseKlaar(S, b)
         ? `<div class="fase">${naar}<div><b>Upgrade naar fase ${f + 1}: ${D.FASE_NAAM[f]}</b><br>${effect} Bouwtijd: ${duur(E.bouwTijd(S, b))}.</div><span class="kost">${kost(E.faseKost(S, b))}</span><button class="knop klein" data-fase="${b}">Upgrade naar fase ${f + 1}</button></div>`
         : `<div class="bar" title="Naar groeifase ${f + 1}"><i style="width:${Math.min(100, n / dr * 100)}%"></i></div><small class="nb">Upgrade naar fase ${f + 1} (${D.FASE_NAAM[f]}, productie ×2) kan bij ${dr} stuks. Je hebt er ${n}, nog ${dr - n} bouwen.</small>`;
-    } else if (y.p) fz = '<small class="nb">Hoogste fase bereikt: Meesterwerk.</small>';
-    if (y.p && f >= D.runeFase) fz += runeHTML(b);
+    } else if (y.p) fz = `<small class="nb">Hoogste fase bereikt: ${D.FASE_NAAM[BAL.faseMax - 1]}.</small>`;
+    if (y.p && (f >= D.runeFase || S.zegel?.[b])) fz += runeHTML(b);
     const ups = D.U.filter(u => u.fx.some(e => (e.t === 'prod' && (y.p?.[e.res] || e.d === d)) || (e.t === 'bed' && e.b === b) || (e.t === 'brug' && y.brug) || (e.t === 'opslag' && y.o)));
     const upl = ups.length ? `<p class="ups">Upgrades uit de winkel: ${ups.map(u => { const st = S.up[u.id] ? 'heb' : E.eisOk(S, u.eis) ? 'kan' : 'nog';
       return `<button class="upl ${st}" data-tab-ga="upgrades" title="${st === 'heb' ? 'Gekocht' : st === 'kan' ? 'Te koop bij Upgrades' : 'Vereist: ' + esc(E.eisTekst(u.eis))}">${st === 'heb' ? '✓ ' : ''}${u.naam} <span>(${u.tekst})</span></button>`; }).join('')}</p>` : '';
     h += `<div class="gb${flits === b ? ' flits' : ''}${faseMoment === b ? ' groei' : ''}" data-gb="${b}"><div class="ico">${gebouwIco(b, f)}</div><div class="gi">
-      <h3>${y.naam} <span class="n">${n}</span>${y.p ? `<span class="fn">fase ${f} van 5: ${D.FASE_NAAM[f - 1]}</span>` : ''}</h3><p>${wat}</p>
+      <h3>${y.naam} <span class="n">${n}</span>${y.p ? `<span class="fn">fase ${f} van ${BAL.faseMax}: ${D.FASE_NAAM[f - 1]}</span>` : ''}</h3><p>${wat}</p>
       <p class="kost" data-kost="${b}"></p>${fz}${upl}</div>
       <button class="knop" data-buy="${b}"></button></div>`;
   }
@@ -292,12 +292,15 @@ function actHTML(id) {
   if (l.band >= C.ultBand) h += `<button class="knop klein ult" data-ult="${id}" title="${ult}">Ultiem · ${C.ultKost} Wortelgloed</button>`;
   h += '</div>';
   h += l.band >= C.ultBand ? `<p class="nb">Ultiem: ${ult}. Afkoeltijd 1 uur.</p>` : `<p class="nb">Ultieme vaardigheid vanaf Band ${C.ultBand}.</p>`;
+  if (l.band < C.bandMax && S.open.includes('Valunari')) h += `<button class="knop klein" data-bad="${id}" title="Nevelbad: direct een Band erbij">Nevelbad: naar Band ${l.band + 1} · ${E.badKost(S)} Nevelparels</button>`;
   if (l.band >= C.bandMax && l.band < C.bandTop) h += `<button class="knop klein" data-doorbreek="${id}">Naar Band ${l.band + 1} · ${C.bandWortel} Wortelgloed</button>`;
   return h + '</div>';
 }
 function runeHTML(b) {
-  const nu = S.rune[b];
-  return `<div class="runen"><b>Rune:</b> ${nu ? `${D.RUNE[nu].naam} (${D.RUNE[nu].tekst.toLowerCase()})` : 'nog geen'}<div class="rij">${Object.entries(D.RUNE).filter(([r]) => r !== nu).map(([r, x]) =>
+  const nu = S.rune[b], zg = S.zegel?.[b];
+  if (zg) return `<div class="runen"><b>Rune:</b> ${D.RUNE[nu].naam}, verzegeld met Kroonhars. Werkt 1,5× zo sterk en blijft staan na Hergroei.</div>`;
+  const zk = nu && S.open.includes('Kroveli') ? `<button class="upl" data-zegel="${b}" title="Harszegel: rune 1,5× zo sterk en blijvend">Harszegel: verzegel deze rune <span class="kost">${E.zegelKost(S)} Kroonhars</span></button>` : '';
+  return `<div class="runen"><b>Rune:</b> ${nu ? `${D.RUNE[nu].naam} (${D.RUNE[nu].tekst.toLowerCase()})` : 'nog geen'}<div class="rij">${zk}${Object.entries(D.RUNE).filter(([r]) => r !== nu).map(([r, x]) =>
     `<button class="upl" data-rune="${b}:${r}" title="${x.tekst}">${x.naam}: ${x.tekst.toLowerCase()} <span class="kost">${kost(E.runeKost(S, r))}</span></button>`).join('')}</div></div>`;
 }
 function bronwerkHTML() {
@@ -502,6 +505,9 @@ function ververs() {
     const st = document.querySelector(`[data-actst="${id}"]`); if (st) st.textContent = !E.plek(S, id) ? 'Werkt alleen als ingezet.' : a.over > 0 ? `Loopt nog ${duur(a.over)}.` : a.cd > 0 ? `Weer klaar over ${duur(a.cd)}.` : 'Klaar.'; });
   $$('[data-ult]').forEach(el => el.disabled = !E.actKan(S, el.dataset.ult, true));
   $$('[data-doorbreek]').forEach(el => el.disabled = !E.doorbreekKan(S, el.dataset.doorbreek));
+  $$('[data-bad]').forEach(el => el.disabled = !E.badKan(S, el.dataset.bad));
+  $$('[data-zegel]').forEach(el => el.disabled = !E.zegelKan(S, el.dataset.zegel));
+  $$('[data-zicht]').forEach(el => { const c = E.zichtKost(S, el.dataset.zicht); el.disabled = !(S.r.nevelparel >= c); const k = el.querySelector('[data-zichtk]'); if (k && isFinite(c)) k.textContent = c; });
   $$('[data-rune]').forEach(el => { const [b, r] = el.dataset.rune.split(':'); el.disabled = !E.kan(S, E.runeKost(S, r)); });
   $$('[data-fase]').forEach(el => el.disabled = !E.kan(S, E.faseKost(S, el.dataset.fase, m)));
   $$('[data-up]').forEach(el => el.disabled = !E.kan(S, E.upKost(S, D.U.find(u => u.id === el.dataset.up))));
@@ -550,8 +556,8 @@ function volTekst(nu, c, net) {
 }
 // ---------- grondstof-uitleg ----------
 const HERKOMST = { nevelparel: 'Valunari', kroonhars: 'Kroveli', wortelgloed: 'Lomaruun', hout: 'Takelom', bladeren: 'Lomavii', lianen: 'Lomavii', voedsel: 'Moloro', steen: 'Dorukha', kristal: 'Dorukha', gereedschap: 'Frikto', energie: 'Voelari' };
-const WAARVOOR = { nevelparel: 'sleutelknopen in de upgradebomen van de Lomari (5 per knoop)', kroonhars: 'de upgrade naar fase 5 (Meesterwerk): 20 Kroonhars per gebouw',
-  wortelgloed: 'De oude bron, ultieme vaardigheden (3 per keer) en Band boven de 30 (2 per Band)', hout: 'bijna elk gebouw', bladeren: 'woningen, Voelari en upgrades', lianen: 'bruggen, Hangtuinen en het openen van districten',
+const WAARVOOR = { nevelparel: 'sleutelknopen in de upgradebomen (5 per knoop), upgrades naar fase 6 tot 8, Nevelzicht (een upgrade direct afmaken), het Nevelbad (een Band erbij) en het Bronwerk', kroonhars: 'upgrades naar fase 5, 7 en 8, de Harszegel (een rune 1,5× sterker en blijvend) en het Bronwerk',
+  wortelgloed: 'De oude bron, de upgrade naar fase 8, ultieme vaardigheden (3 per keer) en Band boven de 30 (2 per Band)', hout: 'bijna elk gebouw', bladeren: 'woningen, Voelari en upgrades', lianen: 'bruggen, Hangtuinen en het openen van districten',
   voedsel: 'je bewoners: elke bewoner eet een beetje. Is het op, dan halveert alle andere productie', steen: 'grotere gebouwen en groeifase 3 en hoger',
   gereedschap: 'groeifase 3 en hoger', kristal: 'magische upgrades en Voelari', energie: 'magische upgrades en de Hergroei' };
 function uitleg(k) {
@@ -631,6 +637,9 @@ $('#paneel').addEventListener('click', e => {
   else if (d.tocht) { const [id, k] = d.tocht.split(':'); if (E.stuur(S, id, k)) { toast(`${E.lomDef(id).naam} vertrekt op een ${D.TOCHT[k].naam.toLowerCase()}`); E.tel(S, 'tocht'); klank('tocht'); after(); } }
   else if (d.doorbreek) { if (E.doorbreek(S, d.doorbreek)) { E.tel(S, 'doorbreek'); toast(`${E.lomDef(d.doorbreek).naam} bereikt Band ${S.lom[d.doorbreek].band}`); klank('upgrade'); after(); } }
   else if (d.knoop) { const [id, i] = d.knoop.split(':'); openBoom.add(id); if (E.koopKnoop(S, id, +i)) { toast(`${E.lomDef(id).naam} leert ${LM.BOOM[id][+i][0]}`); klank('upgrade'); after(); } }
+  else if (d.bad) { if (E.nevelbad(S, d.bad)) { toast(`${E.lomDef(d.bad).naam} komt uit het Nevelbad: Band ${S.lom[d.bad].band}`); klank('upgrade'); after(); } }
+  else if (d.zegel) { if (E.zegel(S, d.zegel)) { toast(`De rune van ${B[d.zegel].naam} is verzegeld met Kroonhars`); klank('upgrade'); after(); } }
+  else if (d.zicht) { if (E.nevelzicht(S, d.zicht)) { klank('upgrade'); meldBouw(); } }
   else if (d.rune) { const [b, r] = d.rune.split(':'); if (E.zetRune(S, b, r)) { E.tel(S, 'rune'); toast(`${D.RUNE[r].naam} in ${B[b].naam}`); after(); } }
   else if (d.bouwhelp) helpBouw(d.bouwhelp);
   else if (d.help) helpGeb(+d.help);

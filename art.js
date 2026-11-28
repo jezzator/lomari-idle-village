@@ -60,10 +60,11 @@ window.ART = (() => {
 
   function gebouw(b, fase = 1, opslag = false) {
     const f = G[b]; if (!f) return '';
-    const id = ++uid, s = opslag ? 1 : .78 + .055 * (fase - 1);
+    const id = ++uid, s = opslag ? 1 : .78 + .055 * (Math.min(fase, 5) - 1);
     let extra = '';
     if (!opslag) {
       if (fase >= 3) extra += lantaarn(10, 30) + lantaarn(54, 26);
+      if (fase >= 6) extra += `<circle cx="32" cy="34" r="${18 + 2 * (fase - 6)}" fill="none" stroke="${VIOL}" stroke-width="1.2" opacity=".55"/>`;
       if (fase >= 5) extra += bloem(14, 12) + bloem(50, 10, '#e48ab0') + `<path d="M32 2l1.5 3.5 3.5 1.5-3.5 1.5-1.5 3.5-1.5-3.5-3.5-1.5 3.5-1.5z" fill="${VIOL}"/>`;
     }
     return `<svg viewBox="0 0 64 64" aria-hidden="true">${!opslag && fase >= 4 ? glans(id) : ''}${schaduw}<g transform="translate(32 58) scale(${s}) translate(-32 -58)">${f(fase)}</g>${extra}</svg>`;

@@ -15,7 +15,7 @@ window.ENGINE = (() => {
       rondeStart: Date.now(), verzamelT: 0, instel: prev ? prev.instel : { offlineMelding: true },
       lom: prev ? prev.lom || {} : {}, ooit: prev ? prev.ooit || {} : {}, vondsten: [], vondstTot: prev ? prev.vondstTot || 0 : 0,
       vondstBonus: prev ? prev.vondstBonus || {} : {}, vondstT: 0, lichtT: 0, bol: null, gebeurtenissen: prev ? prev.gebeurtenissen || 0 : 0, tikken: prev ? prev.tikken || 0 : 0,
-      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: {}, act: {},
+      klok: prev ? prev.klok || 0 : 0, geb: [], gebT: 0, bouw: [], bouwKlaar: [], rune: prev?.zegel ? Object.fromEntries(Object.keys(prev.zegel).filter(b => prev.rune?.[b]).map(b => [b, prev.rune[b]])) : {}, zegel: prev ? { ...(prev.zegel || {}) } : {}, act: {},
       reliek: prev ? prev.reliek || {} : {}, jaar: prev ? prev.jaar || 0 : 0, beproef: prev?.beproefVolgende || null, beproefKlaar: prev ? prev.beproefKlaar || {} : {}, bronwerk: prev?.bronwerk ? { t: prev.bronwerk.t || 0, in: { ...(prev.bronwerk.in || {}) } } : { t: 0, in: {} }, tel: prev ? prev.tel || {} : {}, dag: prev ? prev.dag || null : null, week: prev ? prev.week || null : null, reeks: prev ? prev.reeks || null : null, gave: prev ? prev.gave || {} : { ...D.GAVE_START }, gaveAan: prev ? prev.gaveAan || null : null, gaveNieuw: [], gaveKocht: {},
     };
     RK.forEach(k => S.r[k] = 0); BK.forEach(b => { S.n[b] = 0; S.fase[b] = 1; });
@@ -235,7 +235,7 @@ window.ENGINE = (() => {
     const keten = [];
     for (const b of BK) {
       const x = B[b]; if (!x.p || !S.n[b]) continue;
-      const f = S.n[b] * 2 ** (S.fase[b] - 1) * staff * g * BAL.productieSchaal * dF[x.d] * stilF(S, b, m) * (S.rune?.[b] === 'groei' ? 1.5 : 1);
+      const f = S.n[b] * 2 ** (S.fase[b] - 1) * staff * g * BAL.productieSchaal * dF[x.d] * stilF(S, b, m) * runeGroeiX(S, b);
       if (x.c) { keten.push([b, f]); continue; }
       for (const [k, v] of Object.entries(x.p)) prod[k] += v * f * (m.res[k] || 1);
     }
@@ -291,22 +291,33 @@ window.ENGINE = (() => {
     const c = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, v * BAL.faseKostMult[i]]));
     for (const [k, f] of Object.entries(BAL.faseExtra[i])) c[k] = (c[k] || 0) + waarde * BAL.faseKostMult[i] * f / RES[k].waarde;
     for (const k in c) c[k] *= m.faseKost * (i >= 1 ? m.faseHoog : 1) * (m.kostRes[k] || 1);
-    if (i === 3) c.kroonhars = 20;   // naar fase 5 (Meesterwerk) is Kroonhars nodig
+    Object.assign(c, BAL.faseZeldzaam[i] || {});   // vanaf fase 5 vaste zeldzame grondstoffen
     return c;
   }
-  const faseKlaar = (S, b, m = mods(S)) => !!B[b].p && S.fase[b] < 5 && S.n[b] >= faseDrempel(S, b, m) && !bouwBezig(S, B[b].d);
+  const faseKlaar = (S, b, m = mods(S)) => !!B[b].p && S.fase[b] < BAL.faseMax && S.n[b] >= faseDrempel(S, b, m) && !bouwBezig(S, B[b].d);
   // Bouwtijd: een upgrade naar een hogere fase is pas klaar na de bouwtijd. Tot dan produceert het gebouw op de oude fase.
   const bouwBezig = (S, d) => (S.bouw || []).find(x => B[x.b].d === d) || null;
-  const bouwTijd = (S, b, m = mods(S)) => Math.round(BAL.bouwSec[S.fase[b] - 1] * m.bouwX * (m.bouwD[B[b].d] || 1) * (S.rune?.[b] === 'vlot' ? .5 : 1));
+  const bouwTijd = (S, b, m = mods(S)) => Math.round(BAL.bouwSec[S.fase[b] - 1] * m.bouwX * (m.bouwD[B[b].d] || 1) * runeVlotX(S, b));
   // Runen
-  const runeKost = (S, r, m = mods(S)) => { const f = D.runeGroei ** Object.keys(S.rune || {}).length;
+  const runeGroeiX = (S, b) => S.rune?.[b] === 'groei' ? 1 + .5 * (S.zegel?.[b] ? D.ZEGEL.sterk : 1) : 1;
+  const runeVlotX = (S, b) => S.rune?.[b] === 'vlot' ? (S.zegel?.[b] ? 1 / 3 : .5) : 1;
+  const runeKost = (S, r, m = mods(S)) => { const f = D.runeGroei ** Object.keys(S.rune || {}).filter(b => !S.zegel?.[b]).length;
     return Object.fromEntries(Object.entries(D.RUNE[r].kost).map(([k, v]) => [k, v * f * (k === 'kristal' ? m.runeKost : 1)])); };
   function zetRune(S, b, r) {
-    if (!B[b].p || S.fase[b] < D.runeFase || S.rune?.[b] === r) return false;
+    if (!B[b].p || S.fase[b] < D.runeFase || S.rune?.[b] === r || S.zegel?.[b]) return false;
     S.rune = S.rune || {}; const oud = S.rune[b]; delete S.rune[b];
     const c = runeKost(S, r); if (!kan(S, c)) { if (oud) S.rune[b] = oud; return false; }
     betaal(S, c); S.rune[b] = r; return true;
   }
+  // Harszegel en Nevelparels
+  const zegelKost = S => Math.ceil(D.ZEGEL.kost * D.ZEGEL.groei ** Object.keys(S.zegel || {}).length);
+  const zegelKan = (S, b) => !!S.rune?.[b] && !S.zegel?.[b] && S.r.kroonhars >= zegelKost(S);
+  function zegel(S, b) { if (!zegelKan(S, b)) return false; S.r.kroonhars -= zegelKost(S); (S.zegel = S.zegel || {})[b] = true; return true; }
+  const zichtKost = (S, b) => { const x = (S.bouw || []).find(x => x.b === b); return x ? Math.max(1, Math.ceil(x.over / D.NEVEL.zichtSec)) : Infinity; };
+  function nevelzicht(S, b) { const c = zichtKost(S, b); if (!(S.r.nevelparel >= c)) return false; S.r.nevelparel -= c; S.bouw.find(x => x.b === b).over = 0; bouwTick(S, 0); return true; }
+  const badKost = S => Math.ceil(D.NEVEL.bad * D.NEVEL.badGroei ** (S.nevelbad || 0));
+  const badKan = (S, id) => { const l = S.lom[id]; return !!l && l.band < C.bandMax && S.r.nevelparel >= badKost(S); };
+  function nevelbad(S, id) { if (!badKan(S, id)) return false; S.r.nevelparel -= badKost(S); S.nevelbad = (S.nevelbad || 0) + 1; S.lom[id].band++; return true; }
   // Upgradebomen
   const punten = (S, id) => { const l = S.lom[id]; return l ? l.band - (l.boom || []).reduce((a, i) => a + LM.BOOM_KOST[i], 0) : 0; };
   function boomKan(S, id, i) {
@@ -732,7 +743,7 @@ window.ENGINE = (() => {
   function perStuk(S, b, m = mods(S)) {
     const x = B[b]; if (!x.p) return {};
     const lijst = verbindingen(S), bed = bedden(S, m), job = banen(S), staff = (job ? Math.min(1, bed / job) : 1) * helpF(bed, job, m);
-    const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * nachtF(S, m) * stilF(S, b, m) * (S.rune?.[b] === 'groei' ? 1.5 : 1) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
+    const f = 2 ** (S.fase[b] - 1) * staff * globaal(S, m) * nachtF(S, m) * stilF(S, b, m) * runeGroeiX(S, b) * BAL.productieSchaal * (m.dist[x.d] || 1) * tevFactor(S, x.d, m) * verbindFactor(S, x.d, m, lijst);
     return Object.fromEntries(Object.entries(x.p).map(([k, v]) => [k, v * f * (m.res[k] || 1)]));
   }
   function waardeRate(S, m = mods(S)) { const R = rates(S, m); return RK.reduce((a, k) => a + RES[k].waarde * (R.prod[k] - R.use[k]), 0); }
@@ -744,7 +755,7 @@ window.ENGINE = (() => {
     waardeRate, perStuk, tikWaarde, offlineInfo: S => { const m = mods(S); return { rend: Math.min(BAL.offlineMax, BAL.offlineRendement + m.offlineEff), limiet: Math.min(24, m.offline), manden: !!(m.nachtmanden && autoAan(S, 'verzamel', m)) }; }, globaal: S => globaal(S, mods(S)), bedden: S => bedden(S, mods(S)), banen, totaal, achAantal,
     lomDef, plek, wijs, lomTick, kiesVondst, vangBol, xpNodig, eisLomOk: (S, e) => eisLomOk(S, e, mods(S)), eisLomTekst,
     jaarKlaar, jaarWacht, jaarring, beproefOpen, bronwerkOpen, leg, actKan, gebruik, doorbreekKan, doorbreek, opTocht, tochtKan: (S, id) => tochtKan(S, id), stuur,
-    runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, punten, boomKan, koopKnoop,
+    runeKost: (S, r) => runeKost(S, r, mods(S)), zetRune, zegelKost, zegelKan, zegel, zichtKost, nevelzicht, badKost, badKan, nevelbad, punten, boomKan, koopKnoop,
     wereld, help, dagInfo, isNacht, bouwBezig, bouwTijd: (S, b) => bouwTijd(S, b, mods(S)), helpBouw,
     tevredenheid: (S, d) => tevredenheid(S, d, mods(S)), verbindingen, verbandActief: (S, v) => { const m = mods(S); return m.verbanden.includes(v.id); }, inDistrict };
 })();
